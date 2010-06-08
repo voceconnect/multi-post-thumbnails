@@ -96,7 +96,13 @@ if (!class_exists('MultiPostThumbnails')) {
 		 * @return void
 		 */
 		public function add_attachment_field($form_fields, $post) {
-			$link = sprintf('<a id="%4$s-%1$s-thumbnail-%2$s" class="%1$s-thumbnail" href="#" onclick="MultiPostThumbnailsSetAsThumbnail(\'%2$s\', \'%1$s\', \'%4$s\');return false;">Set as %3$s</a>', $this->id, $post->ID, $this->label, $this->post_type);
+			$calling_post_id = 0;
+			if ( isset( $_GET['post_id'] ) )
+				$calling_post_id = absint( $_GET['post_id'] );
+			elseif ( isset( $_POST ) && count( $_POST ) ) // Like for async-upload where $_GET['post_id'] isn't set
+				$calling_post_id = $post->post_parent;
+			$ajax_nonce = wp_create_nonce( "set_post_thumbnail-{$this->post_type}-{$this->id}-{$calling_post_id}" );
+			$link = sprintf('<a id="%4$s-%1$s-thumbnail-%2$s" class="%1$s-thumbnail" href="#" onclick="MultiPostThumbnailsSetAsThumbnail(\'%2$s\', \'%1$s\', \'%4$s\', \'%5$s\');return false;">Set as %3$s</a>', $this->id, $post->ID, $this->label, $this->post_type, $ajax_nonce);
 			$form_fields["{$this->post_type}-{$this->id}-thumbnail"] = array(
 				'label' => $this->label,
 				'input' => 'html',
@@ -188,8 +194,8 @@ if (!class_exists('MultiPostThumbnails')) {
 		 * @param string $thumbnail_id The thumbnail's post ID.
 		 * @return string HTML
 		 */
-		private function post_thumbnail_html( $thumbnail_id = NULL ) {
-			global $content_width, $_wp_additional_image_sizes;
+		private function post_thumbnail_html( $thumbnail_id = NULL, $post_id = NULL ) {
+			global $content_width, $_wp_additional_image_sizes, $post_ID;
 
 			$set_thumbnail_link = sprintf('<p class="hide-if-no-js"><a title="%1$s" href="%2$s" id="set-%3$s-%4$s-thumbnail" class="thickbox">%%s</a></p>', esc_attr__( "Set {$this->label}" ), get_upload_iframe_src('image'), $this->post_type, $this->id);
 			$content = sprintf($set_thumbnail_link, esc_html__( "Set {$this->label}" ));
@@ -203,8 +209,9 @@ if (!class_exists('MultiPostThumbnails')) {
 				else
 					$thumbnail_html = wp_get_attachment_image( $thumbnail_id, "{$this->post_type}-{$this->id}-thumbnail" );
 				if ( !empty( $thumbnail_html ) ) {
+					$ajax_nonce = wp_create_nonce( "set_post_thumbnail-{$this->post_type}-{$this->id}-{$post_id}" );
 					$content = sprintf($set_thumbnail_link, $thumbnail_html);
-					$content .= sprintf('<p class="hide-if-no-js"><a href="#" id="remove-%1$s-%2$s-thumbnail" onclick="MultiPostThumbnailsRemoveThumbnail(\'%2$s\', \'%1$s\');return false;">%3$s</a></p>', $this->post_type, $this->id, esc_html__( "Remove {$this->label}" ));
+					$content .= sprintf('<p class="hide-if-no-js"><a href="#" id="remove-%1$s-%2$s-thumbnail" onclick="MultiPostThumbnailsRemoveThumbnail(\'%2$s\', \'%1$s\', \'%4$s\');return false;">%3$s</a></p>', $this->post_type, $this->id, esc_html__( "Remove {$this->label}" ), $ajax_nonce);
 				}
 				$content_width = $old_content_width;
 			}
@@ -223,18 +230,22 @@ if (!class_exists('MultiPostThumbnails')) {
 				die( '-1' );
 			$thumbnail_id = intval( $_POST['thumbnail_id'] );
 
+			check_ajax_referer( "set_post_thumbnail-{$this->post_type}-{$this->id}-{$post_id}" );
+
 			if ( $thumbnail_id == '-1' ) {
 				delete_post_meta( $post_id, "{$this->post_type}_{$this->id}_thumbnail_id" );
-				die( $this->post_thumbnail_html() );
+				die( $this->post_thumbnail_html(NULL, $post_id) );
 			}
 
 			if ( $thumbnail_id && get_post( $thumbnail_id ) ) {
 				$thumbnail_html = wp_get_attachment_image( $thumbnail_id, 'thumbnail' );
 				if ( !empty( $thumbnail_html ) ) {
 					update_post_meta( $post_id, "{$this->post_type}_{$this->id}_thumbnail_id", $thumbnail_id );
-					die( $this->post_thumbnail_html( $thumbnail_id ));
+					die( $this->post_thumbnail_html( $thumbnail_id, $post_id ));
 				}
 			}
+
+			die('0');
 		}
 
 	}
