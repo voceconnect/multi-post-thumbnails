@@ -84,8 +84,8 @@ if (!class_exists('MultiPostThumbnails')) {
 		 */
 		public function thumbnail_meta_box() {
 			global $post;
-			$thumbnail_id = get_post_meta( $post->ID, "{$this->post_type}_{$this->id}_thumbnail_id", true );
-			echo $this->post_thumbnail_html( $thumbnail_id);
+			$thumbnail_id = get_post_meta($post->ID, "{$this->post_type}_{$this->id}_thumbnail_id", true);
+			echo $this->post_thumbnail_html($thumbnail_id);
 		}
 
 		/**
@@ -97,11 +97,11 @@ if (!class_exists('MultiPostThumbnails')) {
 		 */
 		public function add_attachment_field($form_fields, $post) {
 			$calling_post_id = 0;
-			if ( isset( $_GET['post_id'] ) )
-				$calling_post_id = absint( $_GET['post_id'] );
-			elseif ( isset( $_POST ) && count( $_POST ) ) // Like for async-upload where $_GET['post_id'] isn't set
+			if (isset($_GET['post_id']))
+				$calling_post_id = absint($_GET['post_id']);
+			elseif (isset($_POST) && count($_POST)) // Like for async-upload where $_GET['post_id'] isn't set
 				$calling_post_id = $post->post_parent;
-			$ajax_nonce = wp_create_nonce( "set_post_thumbnail-{$this->post_type}-{$this->id}-{$calling_post_id}" );
+			$ajax_nonce = wp_create_nonce("set_post_thumbnail-{$this->post_type}-{$this->id}-{$calling_post_id}");
 			$link = sprintf('<a id="%4$s-%1$s-thumbnail-%2$s" class="%1$s-thumbnail" href="#" onclick="MultiPostThumbnailsSetAsThumbnail(\'%2$s\', \'%1$s\', \'%4$s\', \'%5$s\');return false;">Set as %3$s</a>', $this->id, $post->ID, $this->label, $this->post_type, $ajax_nonce);
 			$form_fields["{$this->post_type}-{$this->id}-thumbnail"] = array(
 				'label' => $this->label,
@@ -163,17 +163,17 @@ if (!class_exists('MultiPostThumbnails')) {
 		  */
 		public static function get_the_post_thumbnail($post_type, $thumb_id, $post_id = NULL, $size = 'post-thumbnail', $attr = '' ) {
 			global $id;
-			$post_id = ( NULL === $post_id ) ? $id : $post_id;
-			$post_thumbnail_id = self::get_post_thumbnail_id($post_type, $thumb_id, $post_id );
-			$size = apply_filters( "{$post_type}_{$id}_thumbnail_size", $size );
-			if ( $post_thumbnail_id ) {
-				do_action( "begin_fetch_{$post_type}_{$id}_thumbnail_html", $post_id, $post_thumbnail_id, $size ); // for "Just In Time" filtering of all of wp_get_attachment_image()'s filters
+			$post_id = (NULL === $post_id) ? $id : $post_id;
+			$post_thumbnail_id = self::get_post_thumbnail_id($post_type, $thumb_id, $post_id);
+			$size = apply_filters("{$post_type}_{$id}_thumbnail_size", $size);
+			if ($post_thumbnail_id) {
+				do_action("begin_fetch_multi_{$post_type}_thumbnail_html", $post_id, $post_thumbnail_id, $size); // for "Just In Time" filtering of all of wp_get_attachment_image()'s filters
 				$html = wp_get_attachment_image( $post_thumbnail_id, $size, false, $attr );
-				do_action( "end_fetch_{$post_type}_{$id}_thumbnail_html", $post_id, $post_thumbnail_id, $size );
+				do_action("end_fetch_multi_{$post_type}_thumbnail_html", $post_id, $post_thumbnail_id, $size);
 			} else {
 				$html = '';
 			}
-			return apply_filters( "{$post_type}_{$id}_thumbnail_html", $html, $post_id, $post_thumbnail_id, $size, $attr );
+			return apply_filters("{$post_type}_{$id}_thumbnail_html", $html, $post_id, $post_thumbnail_id, $size, $attr);
 		}
 
 		/**
@@ -185,7 +185,7 @@ if (!class_exists('MultiPostThumbnails')) {
 		 * @return int
 		 */
 		public static function get_post_thumbnail_id($post_type, $id, $post_id) {
-			return get_post_meta( $post_id, "{$post_type}_{$id}_thumbnail_id", true );
+			return get_post_meta($post_id, "{$post_type}_{$id}_thumbnail_id", true);
 		}
 
 		/**
