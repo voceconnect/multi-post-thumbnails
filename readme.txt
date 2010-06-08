@@ -2,8 +2,8 @@
 Contributors: chrisscott
 Tags: thumbnails, image
 Requires at least: 2.9.2
-Tested up to: 3.0rc2
-Stable tag: 1.0
+Tested up to: 3.0-RC2
+Stable tag: 0.1
 
 Adds the ability to add multiple post thumbnails to a post type.
 
