@@ -85,7 +85,7 @@ if (!class_exists('MultiPostThumbnails')) {
 		public function thumbnail_meta_box() {
 			global $post;
 			$thumbnail_id = get_post_meta( $post->ID, "{$this->post_type}_{$this->id}_thumbnail_id", true );
-			echo $this->post_thumbnail_html( $thumbnail_id );
+			echo $this->post_thumbnail_html( $thumbnail_id);
 		}
 
 		/**
@@ -194,22 +194,22 @@ if (!class_exists('MultiPostThumbnails')) {
 		 * @param string $thumbnail_id The thumbnail's post ID.
 		 * @return string HTML
 		 */
-		private function post_thumbnail_html( $thumbnail_id = NULL, $post_id = NULL ) {
+		private function post_thumbnail_html($thumbnail_id = NULL) {
 			global $content_width, $_wp_additional_image_sizes, $post_ID;
 
 			$set_thumbnail_link = sprintf('<p class="hide-if-no-js"><a title="%1$s" href="%2$s" id="set-%3$s-%4$s-thumbnail" class="thickbox">%%s</a></p>', esc_attr__( "Set {$this->label}" ), get_upload_iframe_src('image'), $this->post_type, $this->id);
 			$content = sprintf($set_thumbnail_link, esc_html__( "Set {$this->label}" ));
 
 
-			if ( $thumbnail_id && get_post( $thumbnail_id ) ) {
+			if ($thumbnail_id && get_post($thumbnail_id)) {
 				$old_content_width = $content_width;
 				$content_width = 266;
-				if ( !isset( $_wp_additional_image_sizes['product-nutrition-thumbnail'] ) )
-					$thumbnail_html = wp_get_attachment_image( $thumbnail_id, array( $content_width, $content_width ) );
+				if ( !isset($_wp_additional_image_sizes["{$this->post_type}-{$this->id}-thumbnail"]))
+					$thumbnail_html = wp_get_attachment_image($thumbnail_id, array($content_width, $content_width));
 				else
-					$thumbnail_html = wp_get_attachment_image( $thumbnail_id, "{$this->post_type}-{$this->id}-thumbnail" );
-				if ( !empty( $thumbnail_html ) ) {
-					$ajax_nonce = wp_create_nonce( "set_post_thumbnail-{$this->post_type}-{$this->id}-{$post_id}" );
+					$thumbnail_html = wp_get_attachment_image($thumbnail_id, "{$this->post_type}-{$this->id}-thumbnail");
+				if (!empty($thumbnail_html)) {
+					$ajax_nonce = wp_create_nonce("set_post_thumbnail-{$this->post_type}-{$this->id}-{$post_ID}");
 					$content = sprintf($set_thumbnail_link, $thumbnail_html);
 					$content .= sprintf('<p class="hide-if-no-js"><a href="#" id="remove-%1$s-%2$s-thumbnail" onclick="MultiPostThumbnailsRemoveThumbnail(\'%2$s\', \'%1$s\', \'%4$s\');return false;">%3$s</a></p>', $this->post_type, $this->id, esc_html__( "Remove {$this->label}" ), $ajax_nonce);
 				}
@@ -225,23 +225,24 @@ if (!class_exists('MultiPostThumbnails')) {
 		 * @return string Updated post thumbnail HTML.
 		 */
 		public function set_thumbnail() {
-			$post_id = intval( $_POST['post_id'] );
-			if ( !current_user_can( 'edit_post', $post_id ) )
-				die( '-1' );
-			$thumbnail_id = intval( $_POST['thumbnail_id'] );
+			global $post_ID; // have to do this so get_upload_iframe_src() can grab it
+			$post_ID = intval($_POST['post_id']);
+			if ( !current_user_can('edit_post', $post_ID))
+				die('-1');
+			$thumbnail_id = intval($_POST['thumbnail_id']);
 
-			check_ajax_referer( "set_post_thumbnail-{$this->post_type}-{$this->id}-{$post_id}" );
+			check_ajax_referer("set_post_thumbnail-{$this->post_type}-{$this->id}-{$post_ID}");
 
-			if ( $thumbnail_id == '-1' ) {
-				delete_post_meta( $post_id, "{$this->post_type}_{$this->id}_thumbnail_id" );
-				die( $this->post_thumbnail_html(NULL, $post_id) );
+			if ($thumbnail_id == '-1') {
+				delete_post_meta($post_id, "{$this->post_type}_{$this->id}_thumbnail_id");
+				die($this->post_thumbnail_html(NULL));
 			}
 
-			if ( $thumbnail_id && get_post( $thumbnail_id ) ) {
-				$thumbnail_html = wp_get_attachment_image( $thumbnail_id, 'thumbnail' );
-				if ( !empty( $thumbnail_html ) ) {
-					update_post_meta( $post_id, "{$this->post_type}_{$this->id}_thumbnail_id", $thumbnail_id );
-					die( $this->post_thumbnail_html( $thumbnail_id, $post_id ));
+			if ($thumbnail_id && get_post($thumbnail_id)) {
+				$thumbnail_html = wp_get_attachment_image($thumbnail_id, 'thumbnail');
+				if (!empty($thumbnail_html)) {
+					update_post_meta($post_id, "{$this->post_type}_{$this->id}_thumbnail_id", $thumbnail_id);
+					die($this->post_thumbnail_html($thumbnail_id));
 				}
 			}
 
