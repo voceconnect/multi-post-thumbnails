@@ -37,8 +37,9 @@ function MultiPostThumbnailsSetAsThumbnail(thumb_id, id, post_type, nonce){
 		} else {
 			$link.show();
 			$link.text( setPostThumbnailL10n.done );
-			$link.fadeOut( 2000 );
-			jQuery('tr.' + post_type + '-' + id + '-thumbnail').hide();
+			$link.fadeOut( 2000, function() {
+				jQuery('tr.' + post_type + '-' + id + '-thumbnail').hide();
+			});
 			win.MultiPostThumbnailsSetThumbnailID(thumb_id, id, post_type);
 			win.MultiPostThumbnailsSetThumbnailHTML(str, id, post_type);
 		}
