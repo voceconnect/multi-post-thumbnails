@@ -1,4 +1,12 @@
 <?php
+/*
+Plugin Name: Multi Post Thumnails
+Plugin URI: http://vocecommunications.com/
+Description: Adds the ability to add multiple post thumbnails to a post type.
+Version: 1.0
+Author: Chris Scott
+Author URI: http://vocecommuncations.com/
+*/
 
 if (!class_exists('MultiPostThumbnails')) {
 
@@ -30,7 +38,7 @@ if (!class_exists('MultiPostThumbnails')) {
 			$defaults = array(
 				'label' => null,
 				'id' => null,
-				'post_types' => array('post'),
+				'post_type' => 'post',
 				'priority' => 'low',
 			);
 
@@ -47,11 +55,6 @@ if (!class_exists('MultiPostThumbnails')) {
 					trigger_error(sprintf("The 'label' and 'id' values of the 'args' parameter of '%s::%s()' are required", __CLASS__, __FUNCTION__));
 				}
 				return;
-			}
-
-			// Make post_type an array
-			if (!is_array($this->post_type)) {
-				$this->post_types = array($this->post_types);
 			}
 
 			// add theme support if not already added
@@ -79,7 +82,7 @@ if (!class_exists('MultiPostThumbnails')) {
 		 *
 		 * @return string HTML output
 		 */
-		private function thumbnail_meta_box() {
+		public function thumbnail_meta_box() {
 			global $post;
 			$thumbnail_id = get_post_meta( $post->ID, "{$this->post_type}_{$this->id}_thumbnail_id", true );
 			echo $this->post_thumbnail_html( $thumbnail_id );
@@ -107,7 +110,7 @@ if (!class_exists('MultiPostThumbnails')) {
 		 * @return void
 		 */
 		public function enqueue_admin_scripts() {
-			wp_enqueue_script("featured-image-custom", plugins_url('js/featured-image-admin.js', __FILE__), array('jquery'));
+			wp_enqueue_script("featured-image-custom", plugins_url(basename(dirname(__FILE__)) . '/js/multi-post-thumbnails-admin.js'), array('jquery'));
 		}
 
 		/**
