@@ -57,5 +57,5 @@ You can register multiple image sizes for a given thumbnail if desired.
 
 == Changelog ==
 
-= 1.0 =
+= 0.1 =
 * Initial release.
