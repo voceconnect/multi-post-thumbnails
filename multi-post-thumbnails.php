@@ -161,10 +161,10 @@ if (!class_exists('MultiPostThumbnails')) {
 		 * @param string $size Optional. Image size.  Defaults to 'thumbnail'.
 		 * @param string|array $attr Optional. Query string or array of attributes.
 		  */
-		public static function get_the_post_thumbnail($post_type, $id, $post_id = NULL, $size = 'post-thumbnail', $attr = '' ) {
+		public static function get_the_post_thumbnail($post_type, $thumb_id, $post_id = NULL, $size = 'post-thumbnail', $attr = '' ) {
 			global $id;
 			$post_id = ( NULL === $post_id ) ? $id : $post_id;
-			$post_thumbnail_id = self::get_post_thumbnail_id($post_type, $id, $post_id );
+			$post_thumbnail_id = self::get_post_thumbnail_id($post_type, $thumb_id, $post_id );
 			$size = apply_filters( "{$post_type}_{$id}_thumbnail_size", $size );
 			if ( $post_thumbnail_id ) {
 				do_action( "begin_fetch_{$post_type}_{$id}_thumbnail_html", $post_id, $post_thumbnail_id, $size ); // for "Just In Time" filtering of all of wp_get_attachment_image()'s filters
@@ -234,14 +234,14 @@ if (!class_exists('MultiPostThumbnails')) {
 			check_ajax_referer("set_post_thumbnail-{$this->post_type}-{$this->id}-{$post_ID}");
 
 			if ($thumbnail_id == '-1') {
-				delete_post_meta($post_id, "{$this->post_type}_{$this->id}_thumbnail_id");
+				delete_post_meta($post_ID, "{$this->post_type}_{$this->id}_thumbnail_id");
 				die($this->post_thumbnail_html(NULL));
 			}
 
 			if ($thumbnail_id && get_post($thumbnail_id)) {
 				$thumbnail_html = wp_get_attachment_image($thumbnail_id, 'thumbnail');
 				if (!empty($thumbnail_html)) {
-					update_post_meta($post_id, "{$this->post_type}_{$this->id}_thumbnail_id", $thumbnail_id);
+					update_post_meta($post_ID, "{$this->post_type}_{$this->id}_thumbnail_id", $thumbnail_id);
 					die($this->post_thumbnail_html($thumbnail_id));
 				}
 			}
