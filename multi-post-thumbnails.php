@@ -1,9 +1,9 @@
 <?php
 /*
-Plugin Name: Multi Post Thumnails
+Plugin Name: Multiple Post Thumbnails
 Plugin URI: http://vocecommunications.com/
 Description: Adds the ability to add multiple post thumbnails to a post type.
-Version: 0.1
+Version: 0.2
 Author: Chris Scott
 Author URI: http://vocecommuncations.com/
 */
@@ -118,6 +118,13 @@ if (!class_exists('MultiPostThumbnails')) {
 				$calling_post_id = absint($_GET['post_id']);
 			elseif (isset($_POST) && count($_POST)) // Like for async-upload where $_GET['post_id'] isn't set
 				$calling_post_id = $post->post_parent;
+
+			// check the post type to see if link needs to be added
+			$calling_post = get_post($calling_post_id);
+			if ($calling_post && $calling_post->post_type != $this->post_type) {
+				return $form_fields;
+			}
+
 			$ajax_nonce = wp_create_nonce("set_post_thumbnail-{$this->post_type}-{$this->id}-{$calling_post_id}");
 			$link = sprintf('<a id="%4$s-%1$s-thumbnail-%2$s" class="%1$s-thumbnail" href="#" onclick="MultiPostThumbnailsSetAsThumbnail(\'%2$s\', \'%1$s\', \'%4$s\', \'%5$s\');return false;">Set as %3$s</a>', $this->id, $post->ID, $this->label, $this->post_type, $ajax_nonce);
 			$form_fields["{$this->post_type}-{$this->id}-thumbnail"] = array(
