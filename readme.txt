@@ -2,8 +2,8 @@
 Contributors: chrisscott
 Tags: thumbnails, image
 Requires at least: 2.9.2
-Tested up to: 3.0
-Stable tag: 0.3
+Tested up to: 3.0.1
+Stable tag: 0.4
 
 Adds the ability to add multiple post thumbnails to a post type. If you've ever wanted more than one Featured Image on a post, this plugin is for you.
 
@@ -62,6 +62,10 @@ You can register multiple image sizes for a given thumbnail if desired.
 3. Admin meta box with the 'Secondary Image' selected.
 
 == Changelog ==
+
+= 0.4 =
+* Added: optional argument `$link_to_original` to *_the_post_thumbnails template tags. Thanks to gfors for the suggestion.
+* Fixed: PHP warning in media manager due to non-existent object
 
 = 0.3 =
 * Fixed: when displaying the insert link in the media library, check the post_type so it only shows for the registered type.
