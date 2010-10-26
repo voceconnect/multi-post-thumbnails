@@ -171,9 +171,10 @@ if (!class_exists('MultiPostThumbnails')) {
 		 * @param string $post_id Optional. Post ID.
 		 * @param int $size Optional. Image size.  Defaults to 'post-thumbnail', which theme sets using set_post_thumbnail_size( $width, $height, $crop_flag );.
 		 * @param string|array $attr Optional. Query string or array of attributes.
+		 * @param bool $link_to_original Optional. Wrap link to original image around thumbnail?
 		 */
-		public static function the_post_thumbnail($post_type, $id, $post_id = null, $size = 'post-thumbnail', $attr = '') {
-			echo self::get_the_post_thumbnail($post_type, $id, $post_id, $size, $attr);
+		public static function the_post_thumbnail($post_type, $id, $post_id = null, $size = 'post-thumbnail', $attr = '', $link_to_original = false) {
+			echo self::get_the_post_thumbnail($post_type, $id, $post_id, $size, $attr, $link_to_original);
 		}
 
 		/**
@@ -183,9 +184,10 @@ if (!class_exists('MultiPostThumbnails')) {
 		 * @param string $id The id used to register the thumbnail.
 		 * @param int $post_id Optional. Post ID.
 		 * @param string $size Optional. Image size.  Defaults to 'thumbnail'.
+		 * @param bool $link_to_original Optional. Wrap link to original image around thumbnail?
 		 * @param string|array $attr Optional. Query string or array of attributes.
 		  */
-		public static function get_the_post_thumbnail($post_type, $thumb_id, $post_id = NULL, $size = 'post-thumbnail', $attr = '' ) {
+		public static function get_the_post_thumbnail($post_type, $thumb_id, $post_id = NULL, $size = 'post-thumbnail', $attr = '' , $link_to_original = false) {
 			global $id;
 			$post_id = (NULL === $post_id) ? $id : $post_id;
 			$post_thumbnail_id = self::get_post_thumbnail_id($post_type, $thumb_id, $post_id);
@@ -197,6 +199,11 @@ if (!class_exists('MultiPostThumbnails')) {
 			} else {
 				$html = '';
 			}
+			
+			if ($link_to_original) {
+				$html = sprintf('<a href="%s">%s</a>', wp_get_attachment_url($post_thumbnail_id), $html);
+			}
+			
 			return apply_filters("{$post_type}_{$id}_thumbnail_html", $html, $post_id, $post_thumbnail_id, $size, $attr);
 		}
 
