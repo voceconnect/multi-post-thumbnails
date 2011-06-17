@@ -2,8 +2,8 @@
 Contributors: chrisscott
 Tags: thumbnails, image
 Requires at least: 2.9.2
-Tested up to: 3.1
-Stable tag: 0.5
+Tested up to: 3.1.3
+Stable tag: 0.6
 
 Adds multiple post thumbnails to a post type. If you've ever wanted more than one Featured Image on a post, this plugin is for you.
 
@@ -69,6 +69,13 @@ You can register multiple image sizes for a given thumbnail if desired.
 
 == Changelog ==
 
+= 0.6 =
+* Update `get_the_post_thumbnail` return filter to use format `{$post_type}_{$thumb_id}_thumbnail_html` which allows filtering by post type and thumbnail id which was the intent. Props gordonbrander.
+* Update plugin URL to point to Plugin Directory
+
+= 0.5 =
+* Update readme to check for `MultiPostThumbnails` class before calling.
+
 = 0.4 =
 * Added: optional argument `$link_to_original` to *_the_post_thumbnails template tags. Thanks to gfors for the suggestion.
 * Fixed: PHP warning in media manager due to non-existent object
@@ -81,3 +88,8 @@ You can register multiple image sizes for a given thumbnail if desired.
 
 = 0.1 =
 * Initial release.
+
+== Upgrade Notice ==
+
+= 0.6 =
+`get_the_post_thumbnail` return filter changed to use the format `{$post_type}_{$thumb_id}_thumbnail_html` which allows filtering by post type and thumbnail id which was the intent.
