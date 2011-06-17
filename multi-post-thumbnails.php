@@ -3,7 +3,7 @@
 Plugin Name: Multiple Post Thumbnails
 Plugin URI: http://vocecommunications.com/
 Description: Adds the ability to add multiple post thumbnails to a post type.
-Version: 0.2
+Version: 0.5
 Author: Chris Scott
 Author URI: http://vocecommuncations.com/
 */
@@ -191,7 +191,7 @@ if (!class_exists('MultiPostThumbnails')) {
 			global $id;
 			$post_id = (NULL === $post_id) ? $id : $post_id;
 			$post_thumbnail_id = self::get_post_thumbnail_id($post_type, $thumb_id, $post_id);
-			$size = apply_filters("{$post_type}_{$id}_thumbnail_size", $size);
+			$size = apply_filters("{$post_type}_{$thumb_id}_thumbnail_size", $size);
 			if ($post_thumbnail_id) {
 				do_action("begin_fetch_multi_{$post_type}_thumbnail_html", $post_id, $post_thumbnail_id, $size); // for "Just In Time" filtering of all of wp_get_attachment_image()'s filters
 				$html = wp_get_attachment_image( $post_thumbnail_id, $size, false, $attr );
@@ -199,11 +199,11 @@ if (!class_exists('MultiPostThumbnails')) {
 			} else {
 				$html = '';
 			}
-			
+
 			if ($link_to_original) {
 				$html = sprintf('<a href="%s">%s</a>', wp_get_attachment_url($post_thumbnail_id), $html);
 			}
-			
+
 			return apply_filters("{$post_type}_{$id}_thumbnail_html", $html, $post_id, $post_thumbnail_id, $size, $attr);
 		}
 
