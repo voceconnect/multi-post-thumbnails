@@ -121,7 +121,7 @@ if (!class_exists('MultiPostThumbnails')) {
 
 			// check the post type to see if link needs to be added
 			$calling_post = get_post($calling_post_id);
-			if ($calling_post && $calling_post->post_type != $this->post_type) {
+			if (is_null($calling_post) || $calling_post->post_type != $this->post_type) {
 				return $form_fields;
 			}
 
