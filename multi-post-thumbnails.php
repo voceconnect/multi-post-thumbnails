@@ -79,6 +79,10 @@ if (!class_exists('MultiPostThumbnails')) {
 				add_theme_support( 'post-thumbnails' );
 			}
 
+			add_action('init', array($this, 'action_init'));
+		}
+
+		public function action_init() {
 			add_action('add_meta_boxes', array($this, 'add_metabox'));
 			add_filter('attachment_fields_to_edit', array($this, 'add_attachment_field'), 20, 2);
 			add_action('admin_init', array($this, 'enqueue_admin_scripts'));
