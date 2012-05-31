@@ -2,8 +2,8 @@
 Contributors: chrisscott
 Tags: thumbnails, image
 Requires at least: 2.9.2
-Tested up to: 3.1.3
-Stable tag: 0.6
+Tested up to: 3.2.1
+Stable tag: 1.0 
 
 Adds multiple post thumbnails to a post type. If you've ever wanted more than one Featured Image on a post, this plugin is for you.
 
@@ -14,13 +14,13 @@ Adds multiple post thumbnails to a post type. If you've ever wanted more than on
 3. Register a new thumbnail for the post type you want it active for. If `post_type` is not set it defaults to `post`.
 
 		if (class_exists('MultiPostThumbnails')) {
-			new MultiPostThumbnails(array(
-			'label' => 'Secondary Image',
-			'id' => 'secondary-image',
-			'post_type' => 'post'
-			)
-		);
-}
+				new MultiPostThumbnails(array(
+				'label' => 'Secondary Image',
+				'id' => 'secondary-image',
+				'post_type' => 'post'
+				)
+			);
+		}
 4. Display the thumbnail in your theme:
 
 		<?php if (class_exists('MultiPostThumbnails')
@@ -53,11 +53,11 @@ You can loop through an array of the post types:
 
 After you have registered a new post thumbnail, register a new image size for it. e.g if your post thumbnail `id` is `secondary-image` and it is for a `post`, it probably makes sense to use something like:
 
-	`add_image_size('post-secondary-image-thumbnail', 250, 150);`
+`add_image_size('post-secondary-image-thumbnail', 250, 150);`
 
 This will register a new image size of 250x150 px. Then, when you display the thumbnail in your theme, update the call to `MultiPostThumbnails::the_post_thumbnail()` to pass in the image size:
 
-	`MultiPostThumbnails::the_post_thumbnail('post', 'secondary-image', NULL,  'post-secondary-image-thumbnail');`
+`MultiPostThumbnails::the_post_thumbnail('post', 'secondary-image', NULL,  'post-secondary-image-thumbnail');`
 
 You can register multiple image sizes for a given thumbnail if desired.
 
@@ -68,6 +68,19 @@ You can register multiple image sizes for a given thumbnail if desired.
 3. Admin meta box with the 'Secondary Image' selected.
 
 == Changelog ==
+
+= 1.0 =
+
+* Use `get_the_ID()` in `get_the_post_thumbnail`. Props helgatheviking.
+
+= 0.9 =
+* Increment version only to attempt to get plugin versions back in sync.
+
+= 0.8 =
+* Revert init action changes from 0.7. Fixes admin metaboxes not showing when the MultiPostThumbnails class is instantiated in an action instead of `functions.php`
+
+= 0.7 =
+* Add actions/filters on init action. Should fix admin metaboxes not showing or showing out of order. props arizzitano.
 
 = 0.6 =
 * Update `get_the_post_thumbnail` return filter to use format `{$post_type}_{$thumb_id}_thumbnail_html` which allows filtering by post type and thumbnail id which was the intent. Props gordonbrander.
