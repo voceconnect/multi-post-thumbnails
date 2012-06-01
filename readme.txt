@@ -1,9 +1,9 @@
 === Plugin Name ===
 Contributors: chrisscott
-Tags: thumbnails, image
+Tags: thumbnails, image, featured image
 Requires at least: 2.9.2
-Tested up to: 3.2.1
-Stable tag: 1.0 
+Tested up to: 3.3.2
+Stable tag: 1.1
 
 Adds multiple post thumbnails to a post type. If you've ever wanted more than one Featured Image on a post, this plugin is for you.
 
@@ -11,21 +11,20 @@ Adds multiple post thumbnails to a post type. If you've ever wanted more than on
 
 1. Upload the `multi-post-thumbnails` directory to the `/wp-content/plugins/` directory
 2. Activate the plugin through the 'Plugins' menu in WordPress
-3. Register a new thumbnail for the post type you want it active for. If `post_type` is not set it defaults to `post`.
+3. In your theme's `functions.php` register a new thumbnail for the post type you want it active for. If `post_type` is not set it defaults to `post`.
 
-		if (class_exists('MultiPostThumbnails')) {
-				new MultiPostThumbnails(array(
-				'label' => 'Secondary Image',
-				'id' => 'secondary-image',
-				'post_type' => 'post'
-				)
-			);
-		}
+            if (class_exists('MultiPostThumbnails')) {
+                new MultiPostThumbnails(
+                    array(
+                        'label' => 'Secondary Image',
+                        'id' => 'secondary-image',
+                        'post_type' => 'post'
+                    )
+                );
+            }
 4. Display the thumbnail in your theme:
 
-		<?php if (class_exists('MultiPostThumbnails')
-			&& MultiPostThumbnails::has_post_thumbnail('post', 'secondary-image')) :
-				MultiPostThumbnails::the_post_thumbnail('post', 'secondary-image'); endif; ?>
+            <?php if (class_exists('MultiPostThumbnails')) : MultiPostThumbnails::the_post_thumbnail('post', 'secondary-image'); endif; ?>
 
 == Frequently Asked Questions ==
 
@@ -37,29 +36,45 @@ This is caused by using the example in previous readmes that didn't do a check f
 
 You can loop through an array of the post types:
 
-	if (class_exists('MultiPostThumbnails')) {
-		$types = array('post', 'page', 'my_post_type');
-		foreach($types as $type) {
-			$thumb = new MultiPostThumbnails(array(
-				'label' => 'Secondary Image',
-				'id' => 'secondary-image',
-				'post_type' => $type
-				)
-			);
-		}
-	}
+            if (class_exists('MultiPostThumbnails')) {
+                $types = array('post', 'page', 'my_post_type');
+                foreach($types as $type) {
+                    new MultiPostThumbnails(array(
+                        'label' => 'Secondary Image',
+                        'id' => 'secondary-image',
+                        'post_type' => $type
+                        )
+                    );
+                }
+            }
 
 = How do I use a custom thumbnail size in my theme? =
 
 After you have registered a new post thumbnail, register a new image size for it. e.g if your post thumbnail `id` is `secondary-image` and it is for a `post`, it probably makes sense to use something like:
 
-`add_image_size('post-secondary-image-thumbnail', 250, 150);`
+        add_image_size('post-secondary-image-thumbnail', 250, 150);
 
 This will register a new image size of 250x150 px. Then, when you display the thumbnail in your theme, update the call to `MultiPostThumbnails::the_post_thumbnail()` to pass in the image size:
 
-`MultiPostThumbnails::the_post_thumbnail('post', 'secondary-image', NULL,  'post-secondary-image-thumbnail');`
+        MultiPostThumbnails::the_post_thumbnail('post', 'secondary-image', NULL,  'post-secondary-image-thumbnail');
 
 You can register multiple image sizes for a given thumbnail if desired.
+
+= How do I get just the URL of a thumbnail without the wrapping HTML? =
+
+Use `MultiPostThumbnails::get_post_thumbnail_url()` passing in the following arguments:
+
+* `$post_type` - the post type the thumbnail was registered for
+* `$id` - the ID used to register the thumbnail (not the post ID)
+* `$post_id` - optional and only needs to be passed in when outside the loop but should be passed in if available when called
+
+For example, for a thumbnail registered with an `id` of `secondary-image` and `post_type` of `post` the following would retrieve the thumbnail URL:
+
+        MultiPostThumbnails::get_post_thumbnail_url('post', 'secondary-image');
+
+= I see the meta box in the admin when editing a post but when I click on 'Set as [label] image' in the media manager, nothing happens and I get a JavaScript console error =
+
+If you are using a symlink to include the plugin directory in your project, the admin js file will not load and cause this. Unfortunately, the solution is to not use symlinks due to the behavior of PHP's `__FILE__`
 
 == Screenshots ==
 
@@ -68,6 +83,10 @@ You can register multiple image sizes for a given thumbnail if desired.
 3. Admin meta box with the 'Secondary Image' selected.
 
 == Changelog ==
+
+= 1.1 =
+
+* Update FAQ. Clean up `readme`. Don't yell `null`. Don't output link to original if there is no image.
 
 = 1.0 =
 

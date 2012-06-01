@@ -3,7 +3,7 @@
 Plugin Name: Multiple Post Thumbnails
 Plugin URI: http://wordpress.org/extend/plugins/multiple-post-thumbnails/
 Description: Adds the ability to add multiple post thumbnails to a post type.
-Version: 1.0
+Version: 1.1
 Author: Chris Scott
 Author URI: http://vocecommuncations.com/
 */
@@ -236,7 +236,7 @@ if (!class_exists('MultiPostThumbnails')) {
 				$html = '';
 			}
 
-			if ($link_to_original) {
+			if ($link_to_original && $html) {
 				$html = sprintf('<a href="%s">%s</a>', wp_get_attachment_url($post_thumbnail_id), $html);
 			}
 
@@ -278,7 +278,7 @@ if (!class_exists('MultiPostThumbnails')) {
 		 * @param string $thumbnail_id The thumbnail's post ID.
 		 * @return string HTML
 		 */
-		private function post_thumbnail_html($thumbnail_id = NULL) {
+		private function post_thumbnail_html($thumbnail_id = null) {
 			global $content_width, $_wp_additional_image_sizes, $post_ID;
 
 			$set_thumbnail_link = sprintf('<p class="hide-if-no-js"><a title="%1$s" href="%2$s" id="set-%3$s-%4$s-thumbnail" class="thickbox">%%s</a></p>', esc_attr__( "Set {$this->label}" ), get_upload_iframe_src('image'), $this->post_type, $this->id);
@@ -319,7 +319,7 @@ if (!class_exists('MultiPostThumbnails')) {
 
 			if ($thumbnail_id == '-1') {
 				delete_post_meta($post_ID, "{$this->post_type}_{$this->id}_thumbnail_id");
-				die($this->post_thumbnail_html(NULL));
+				die($this->post_thumbnail_html(null));
 			}
 
 			if ($thumbnail_id && get_post($thumbnail_id)) {
