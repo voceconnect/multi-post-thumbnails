@@ -86,7 +86,7 @@ If you are using a symlink to include the plugin directory in your project, the 
 
 = 1.2 =
 
-* Only enqueue admin scripts on needed pages (props johnjamesjacoby) and make sure thickbox is loaded (props prettyboymp).
+* Only enqueue admin scripts on needed pages (props johnjamesjacoby) and make sure thickbox is loaded (props prettyboymp). Add media-upload script to dependencies for post types that don't already require it (props kevinlangleyjr).
 
 = 1.1 =
 

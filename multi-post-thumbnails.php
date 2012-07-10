@@ -146,7 +146,7 @@ if (!class_exists('MultiPostThumbnails')) {
 				return;
 
 			add_thickbox();
-			wp_enqueue_script( "featured-image-custom", $this->plugins_url( 'js/multi-post-thumbnails-admin.js', __FILE__ ), array( 'jquery' ) );
+			wp_enqueue_script( "featured-image-custom", $this->plugins_url( 'js/multi-post-thumbnails-admin.js', __FILE__ ), array( 'jquery', 'media-upload' ) );
 		}
 
 		/**
