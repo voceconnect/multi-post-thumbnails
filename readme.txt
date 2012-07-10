@@ -3,7 +3,7 @@ Contributors: chrisscott
 Tags: thumbnails, image, featured image
 Requires at least: 2.9.2
 Tested up to: 3.3.2
-Stable tag: 1.1
+Stable tag: 1.2
 
 Adds multiple post thumbnails to a post type. If you've ever wanted more than one Featured Image on a post, this plugin is for you.
 
@@ -84,9 +84,13 @@ If you are using a symlink to include the plugin directory in your project, the 
 
 == Changelog ==
 
+= 1.2 =
+
+* Only enqueue admin scripts on needed pages (props johnjamesjacoby) and make sure thickbox is loaded (props prettyboymp).
+
 = 1.1 =
 
-* Update FAQ. Clean up `readme`. Don't yell `null`. Don't output link to original if there is no image.
+* Update FAQ. Clean up `readme`. Don't yell `null`. Don't output link to original if there is no image. 
 
 = 1.0 =
 
