@@ -3,7 +3,7 @@ Contributors: chrisscott, voceplatforms
 Tags: thumbnails, image, featured image
 Requires at least: 2.9.2
 Tested up to: 3.3.2
-Stable tag: 1.2
+Stable tag: 1.3
 
 Adds multiple post thumbnails to a post type. If you've ever wanted more than one Featured Image on a post, this plugin is for you.
 
@@ -83,6 +83,10 @@ If you are using a symlink to include the plugin directory in your project, the 
 3. Admin meta box with the 'Secondary Image' selected.
 
 == Changelog ==
+
+= 1.3 =
+
+* Don't show set as links in media screens when not in context (props prettyboymp). Add voceplatforms as an author.
 
 = 1.2 =
 
