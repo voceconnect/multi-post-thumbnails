@@ -119,6 +119,9 @@ if (!class_exists('MultiPostThumbnails')) {
 				$calling_post_id = absint($_GET['post_id']);
 			elseif (isset($_POST) && count($_POST)) // Like for async-upload where $_GET['post_id'] isn't set
 				$calling_post_id = $post->post_parent;
+			
+			if (!$calling_post_id)
+				return $form_fields;
 
 			// check the post type to see if link needs to be added
 			$calling_post = get_post($calling_post_id);
