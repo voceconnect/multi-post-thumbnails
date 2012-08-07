@@ -1,5 +1,5 @@
 === Plugin Name ===
-Contributors: chrisscott
+Contributors: chrisscott, voceplatforms
 Tags: thumbnails, image, featured image
 Requires at least: 2.9.2
 Tested up to: 3.3.2
