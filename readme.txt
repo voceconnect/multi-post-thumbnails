@@ -22,13 +22,13 @@ Adds multiple post thumbnails to a post type. If you've ever wanted more than on
                     )
                 );
             }
-4. Display the thumbnail in your theme:
+4. Display the thumbnail in your theme. e.g. for loop templates (outside of the loop, the first argument to `MultiPostThumbnails::the_post_thumbnail()` will need to be the post type):
 
-            <?php if (class_exists('MultiPostThumbnails')) : MultiPostThumbnails::the_post_thumbnail('post', 'secondary-image'); endif; ?>
+            <?php if (class_exists('MultiPostThumbnails')) : MultiPostThumbnails::the_post_thumbnail(get_post_type(), 'secondary-image'); endif; ?>
 
 == Frequently Asked Questions ==
 
-= I'm trying to upgrade to a new verions of WordPress and get an error about `MultiPostThumbnails` =
+= I'm trying to upgrade to a new versions of WordPress and get an error about `MultiPostThumbnails` =
 
 This is caused by using the example in previous readmes that didn't do a check for the `MultiPostThumbnails` class existing first. This has been corrected in the Installation section.
 
@@ -56,9 +56,13 @@ After you have registered a new post thumbnail, register a new image size for it
 
 This will register a new image size of 250x150 px. Then, when you display the thumbnail in your theme, update the call to `MultiPostThumbnails::the_post_thumbnail()` to pass in the image size:
 
-        MultiPostThumbnails::the_post_thumbnail('post', 'secondary-image', NULL,  'post-secondary-image-thumbnail');
+        MultiPostThumbnails::the_post_thumbnail(get_post_type(), 'secondary-image', NULL,  'post-secondary-image-thumbnail');
 
 You can register multiple image sizes for a given thumbnail if desired.
+
+= How can I get the thumbnail without automatically echoing it? =
+
+Use `MultiPostThumbnails::get_the_post_thumbnail()` in place of `MultiPostThumbnails::the_post_thumbnail()`.
 
 = How do I get just the URL of a thumbnail without the wrapping HTML? =
 
@@ -70,11 +74,24 @@ Use `MultiPostThumbnails::get_post_thumbnail_url()` passing in the following arg
 
 For example, for a thumbnail registered with an `id` of `secondary-image` and `post_type` of `post` the following would retrieve the thumbnail URL:
 
-        MultiPostThumbnails::get_post_thumbnail_url('post', 'secondary-image');
+        MultiPostThumbnails::get_post_thumbnail_url(get_post_type(), 'secondary-image');
+
+= When I use the sample code the thumbnail doesn't show up. What's wrong? =
+
+* Make sure you are using the same ID you registered the thumbnail with as the second argument to `MultiPostThumbnails::the_post_thumbnail()`.
+* If you are trying to get the thumbnail outside of the loop or a single template, you will need to replace `get_post_type()` with the post type you are trying to get the thumbnail for. This is common when trying to use the code in headers/footers/sidebars.
 
 = I see the meta box in the admin when editing a post but when I click on 'Set as [label] image' in the media manager, nothing happens and I get a JavaScript console error =
 
 If you are using a symlink to include the plugin directory in your project, the admin js file will not load and cause this. Unfortunately, the solution is to not use symlinks due to the behavior of PHP's `__FILE__`
+
+= Is there a github repo? I love me some submodules! =
+
+Yes. https://github.com/voceconnect/multi-post-thumbnails
+
+= Pancakes or waffles? =
+
+Pancakes.
 
 == Screenshots ==
 
@@ -86,7 +103,7 @@ If you are using a symlink to include the plugin directory in your project, the 
 
 = 1.3 =
 
-* Don't show set as links in media screens when not in context (props prettyboymp). Add voceplatforms as an author.
+* Don't show set as links in media screens when not in context (props prettyboymp). Add voceplatforms as an author. Updated FAQ.
 
 = 1.2 =
 
