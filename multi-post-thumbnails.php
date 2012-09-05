@@ -3,7 +3,7 @@
 Plugin Name: Multiple Post Thumbnails
 Plugin URI: http://wordpress.org/extend/plugins/multiple-post-thumbnails/
 Description: Adds the ability to add multiple post thumbnails to a post type.
-Version: 1.3
+Version: 1.4
 Author: Chris Scott
 Author URI: http://vocecommuncations.com/
 */
@@ -128,6 +128,12 @@ if (!class_exists('MultiPostThumbnails')) {
 			if (is_null($calling_post) || $calling_post->post_type != $this->post_type) {
 				return $form_fields;
 			}
+
+			$referer = wp_get_referer();
+			$query_vars = wp_parse_args(parse_url($referer, PHP_URL_QUERY));
+			
+			if( (isset($_REQUEST['context']) && $_REQUEST['context'] != $this->id) || (isset($query_vars['context']) && $query_vars['context'] != $this->id) )
+				return $form_fields;
 
 			$ajax_nonce = wp_create_nonce("set_post_thumbnail-{$this->post_type}-{$this->id}-{$calling_post_id}");
 			$link = sprintf('<a id="%4$s-%1$s-thumbnail-%2$s" class="%1$s-thumbnail" href="#" onclick="MultiPostThumbnailsSetAsThumbnail(\'%2$s\', \'%1$s\', \'%4$s\', \'%5$s\');return false;">Set as %3$s</a>', $this->id, $post->ID, $this->label, $this->post_type, $ajax_nonce);
@@ -288,8 +294,10 @@ if (!class_exists('MultiPostThumbnails')) {
 		 */
 		private function post_thumbnail_html($thumbnail_id = null) {
 			global $content_width, $_wp_additional_image_sizes, $post_ID;
-
-			$set_thumbnail_link = sprintf('<p class="hide-if-no-js"><a title="%1$s" href="%2$s" id="set-%3$s-%4$s-thumbnail" class="thickbox">%%s</a></p>', esc_attr__( "Set {$this->label}" ), get_upload_iframe_src('image'), $this->post_type, $this->id);
+			$image_library_url = get_upload_iframe_src('image');
+			 // if TB_iframe is not moved to end of query string, thickbox will remove all query args after it.
+			$image_library_url = add_query_arg( array( 'context' => $this->id, 'TB_iframe' => 1 ), remove_query_arg( 'TB_iframe', $image_library_url ) );
+			$set_thumbnail_link = sprintf('<p class="hide-if-no-js"><a title="%1$s" href="%2$s" id="set-%3$s-%4$s-thumbnail" class="thickbox">%%s</a></p>', esc_attr__( "Set {$this->label}" ), $image_library_url, $this->post_type, $this->id);
 			$content = sprintf($set_thumbnail_link, esc_html__( "Set {$this->label}" ));
 
 

@@ -2,8 +2,8 @@
 Contributors: chrisscott, voceplatforms
 Tags: thumbnails, image, featured image
 Requires at least: 2.9.2
-Tested up to: 3.3.2
-Stable tag: 1.3
+Tested up to: 3.4.1
+Stable tag: 1.4
 
 Adds multiple post thumbnails to a post type. If you've ever wanted more than one Featured Image on a post, this plugin is for you.
 
@@ -100,6 +100,10 @@ Pancakes.
 3. Admin meta box with the 'Secondary Image' selected.
 
 == Changelog ==
+
+= 1.4 =
+
+* Add a context parameter to the thickbox opener to narrow down the selection in the media upload tabs to the one being set/viewed (props kevinlangleyjr) which reduces clutter when many thumbnails are registered.
 
 = 1.3 =
 
