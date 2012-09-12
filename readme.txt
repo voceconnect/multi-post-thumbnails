@@ -103,7 +103,7 @@ Pancakes.
 
 = 1.4 =
 
-* Add a context parameter to the thickbox opener to narrow down the selection in the media upload tabs to the one being set/viewed (props kevinlangleyjr) which reduces clutter when many thumbnails are registered.
+* Add a context parameter to the thickbox opener to narrow down the selection in the media upload tabs to the one being set/viewed (props kevinlangleyjr) which reduces clutter when many thumbnails are registered. Refactor js to use an object (props markparolisi).
 
 = 1.3 =
 
