@@ -2,8 +2,8 @@
 Contributors: chrisscott, voceplatforms
 Tags: thumbnails, image, featured image
 Requires at least: 2.9.2
-Tested up to: 3.4.1
-Stable tag: 1.4
+Tested up to: 3.5-beta2
+Stable tag: 1.5
 
 Adds multiple post thumbnails to a post type. If you've ever wanted more than one Featured Image on a post, this plugin is for you.
 
@@ -101,6 +101,10 @@ Pancakes.
 
 == Changelog ==
 
+= 1.5 =
+
+* Add support for using new media modal chooser in WordPress 3.5. Versions prior to 3.5 will continue to work using the old style media popup. NOTE: The modal chooser used in 3.5 means that the post thumbnail addition/removal will not take effect until the post is saved. This is a change from the old style media popup that used ajax to save/remove post thumbnails.
+
 = 1.4 =
 
 * Add a context parameter to the thickbox opener to narrow down the selection in the media upload tabs to the one being set/viewed (props kevinlangleyjr) which reduces clutter when many thumbnails are registered. Refactor js to use an object (props markparolisi).
@@ -151,6 +155,9 @@ Pancakes.
 * Initial release.
 
 == Upgrade Notice ==
+
+= 1.5 = 
+This version supports using the modal media chooser introduced in WordPress 3.5. This means the post thumbnail addition/removal will not take effect until the post is saved. This is a change from the old style media popup that used ajax to save/remove post thumbnails.
 
 = 0.6 =
 `get_the_post_thumbnail` return filter changed to use the format `{$post_type}_{$thumb_id}_thumbnail_html` which allows filtering by post type and thumbnail id which was the intent.

@@ -3,7 +3,7 @@
 Plugin Name: Multiple Post Thumbnails
 Plugin URI: http://wordpress.org/extend/plugins/multiple-post-thumbnails/
 Description: Adds the ability to add multiple post thumbnails to a post type.
-Version: 1.4
+Version: 1.5
 Author: Chris Scott
 Author URI: http://vocecommuncations.com/
 */
@@ -52,6 +52,8 @@ if (!class_exists('MultiPostThumbnails')) {
 		 * @return void
 		 */
 		public function register($args = array()) {
+            global $wp_version;
+            
 			$defaults = array(
 				'label' => null,
 				'id' => null,
@@ -73,13 +75,21 @@ if (!class_exists('MultiPostThumbnails')) {
 				}
 				return;
 			}
+            
+            $this->prefix = "{$this->post_type}_{$this->id}";
 
 			// add theme support if not already added
 			if (!current_theme_supports('post-thumbnails')) {
 				add_theme_support( 'post-thumbnails' );
 			}
 
-			add_action('add_meta_boxes', array($this, 'add_metabox'));
+            // use old style media popup for versions after 3.4.2. ugly, but works with 3.5 betas.
+            if (version_compare($wp_version, '3.4.2', '>')) {
+                add_action('add_meta_boxes', array($this, 'add_metabox_modal'));
+                add_action('save_post', array($this, 'action_save_post'));
+            } else {
+                add_action('add_meta_boxes', array($this, 'add_metabox'));
+            }
 			add_filter('attachment_fields_to_edit', array($this, 'add_attachment_field'), 20, 2);
 			add_action('admin_enqueue_scripts', array($this, 'enqueue_admin_scripts'));
 			add_action("wp_ajax_set-{$this->post_type}-{$this->id}-thumbnail", array($this, 'set_thumbnail'));
@@ -94,6 +104,121 @@ if (!class_exists('MultiPostThumbnails')) {
 		public function add_metabox() {
 			add_meta_box("{$this->post_type}-{$this->id}", __($this->label), array($this, 'thumbnail_meta_box'), $this->post_type, 'side', $this->priority);
 		}
+        
+        /**
+         * Add admin metabox for media modal chooser
+         *  
+         */
+        public function add_metabox_modal() {
+			add_meta_box("{$this->post_type}-{$this->id}", __($this->label), array($this, 'thumbnail_meta_box_modal'), $this->post_type, 'side', $this->priority);
+		}
+        
+        /**
+         * Output the metabox with the media modal chooser
+         * 
+         * @global type $_wp_additional_image_sizes
+         * @param type $post 
+         */
+        public function thumbnail_meta_box_modal($post) {
+			global $_wp_additional_image_sizes;
+
+            ?><style>
+                #select-mpt-<?php echo esc_js($this->prefix); ?> {overflow: hidden; padding: 4px 0;}
+                #select-mpt-<?php echo esc_js($this->prefix); ?> .remove {display: none; margin-top: 10px; }
+                #select-mpt-<?php echo esc_js($this->prefix); ?>.has-featured-image .remove { display: inline-block; }
+                #select-mpt-<?php echo esc_js($this->prefix); ?> a { clear: both; float: left; }
+            </style>
+            <script type="text/javascript">
+            jQuery( function($) {
+                var $element     = $('#select-mpt-<?php echo esc_js($this->prefix); ?>'),
+                    $thumbnailId = $element.find('input[name="<?php echo esc_js($this->prefix); ?>_thumbnail_id"]'),
+                    title        = 'Choose a <?php echo esc_js($this->label); ?>',
+                    workflow, setMPTImage;
+
+                setMPTImage = function( thumbnailId ) {
+                    $element.find('img').remove();
+                    $element.toggleClass( 'has-featured-image', -1 != thumbnailId );
+                    $thumbnailId.val( thumbnailId );
+                };
+
+                $element.on( 'click', '.choose, img', function( event ) {
+                    event.preventDefault();
+
+                    if ( ! workflow ) {
+                        workflow = wp.media({
+                            title:   title,
+                            library: {
+                                type: 'image'
+                            }
+                        });
+
+                        workflow.selection.on( 'add', function( model ) {
+                            var sizes = model.get('sizes'),
+                                size;
+
+                            setMPTImage( model.id );
+
+                            // @todo: might need a size hierarchy equivalent.
+                            if ( sizes )
+                                size = sizes['<?php echo esc_js("{$this->post_type}-{$this->id}-thumbnail"); ?>'] || sizes.medium;
+
+                            // @todo: Need a better way of accessing full size
+                            // data besides just calling toJSON().
+                            size = size || model.toJSON();
+
+                            workflow.modal.close();
+                            workflow.selection.clear();
+
+                            $( '<img />', {
+                                src:    size.url,
+                                width:  size.width
+                            }).prependTo( $element );
+                        });
+                    }
+
+                    workflow.modal.open();
+                });
+
+                $element.on( 'click', '.remove', function( event ) {
+                    event.preventDefault();
+                    setMPTImage( -1 );
+                });
+            });
+            </script>
+
+            <?php
+            $thumbnail_id   = MultiPostThumbnails::get_post_thumbnail_id($this->post_type, $this->id, $post->ID);
+            $thumbnail_size = isset( $_wp_additional_image_sizes["{$this->post_type}-{$this->id}-thumbnail"] ) ? "{$this->post_type}-{$this->id}-thumbnail" : 'medium';
+            $thumbnail_html = wp_get_attachment_image( $thumbnail_id, $thumbnail_size );
+
+            $classes = empty( $thumbnail_id ) ? '' : 'has-featured-image';
+
+            ?><div id="select-mpt-<?php echo esc_attr($this->prefix); ?>"
+                class="<?php echo esc_attr( $classes ); ?>"
+                data-post-id="<?php echo esc_attr( $post->ID ); ?>">
+                <?php echo $thumbnail_html; ?>
+                <input type="hidden" name="<?php echo esc_js($this->prefix); ?>_thumbnail_id" value="<?php echo esc_attr( $thumbnail_id ); ?>" />
+                <a href="#" class="choose button-secondary">Choose a <?php echo esc_html($this->label); ?></a>
+                <a href="#" class="remove">Remove <?php echo esc_html($this->label); ?></a>
+            </div>
+            <?php
+		}
+        
+        /**
+         * Save or remove the thumbnail metadata. Only for WordPress version 3.5 with modal media chooser.
+         * @param type $post_id 
+         */
+        public function action_save_post($post_id) {
+            if (isset($_POST["{$this->prefix}_thumbnail_id"]) && !empty($_POST["{$this->prefix}_thumbnail_id"])) {
+                $thumbnail_id = (int) $_POST["{$this->prefix}_thumbnail_id"];
+                if ('-1' == $thumbnail_id)
+                    delete_post_meta($post_id, "{$this->post_type}_{$this->id}_thumbnail_id");
+                else
+                    update_post_meta($post_id, "{$this->post_type}_{$this->id}_thumbnail_id", $thumbnail_id);
+            } else {
+                delete_post_meta($post_id, "{$this->post_type}_{$this->id}_thumbnail_id");
+            }
+        }
 
 		/**
 		 * Output the thumbnail meta box
