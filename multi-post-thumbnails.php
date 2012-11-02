@@ -133,7 +133,8 @@ if (!class_exists('MultiPostThumbnails')) {
                 var $element     = $('#select-mpt-<?php echo esc_js($this->prefix); ?>'),
                     $thumbnailId = $element.find('input[name="<?php echo esc_js($this->prefix); ?>_thumbnail_id"]'),
                     title        = 'Choose a <?php echo esc_js($this->label); ?>',
-                    workflow, setMPTImage;
+                    update       = 'Update <?php echo esc_js($this->label); ?>',
+                    frame, selection, setMPTImage;
 
                 setMPTImage = function( thumbnailId ) {
                     $element.find('img').remove();
@@ -144,39 +145,52 @@ if (!class_exists('MultiPostThumbnails')) {
                 $element.on( 'click', '.choose, img', function( event ) {
                     event.preventDefault();
 
-                    if ( ! workflow ) {
-                        workflow = wp.media({
-                            title:   title,
-                            library: {
-                                type: 'image'
+                    if ( ! frame ) {
+                        frame = wp.media({
+                        title:   title,
+                        library: {
+                            type: 'image'
+                        }
+                    });
+                        
+                    frame.toolbar( new wp.media.view.Toolbar( {
+                        controller: frame,
+                        items: {
+                            update: {
+                                style:    'primary',
+                                text:     update,
+                                priority: 40,
+
+                                click: function() {
+                                    var selection = frame.state().get('selection'),
+                                        model = selection.first(),
+                                        sizes = model.get('sizes'),
+                                        size;
+
+                                    setMPTImage( model.id );
+
+                                    // @todo: might need a size hierarchy equivalent.
+                                    if ( sizes )
+                                        size = sizes['<?php echo esc_js("{$this->post_type}-{$this->id}-thumbnail"); ?>'] || sizes.medium;
+
+                                    // @todo: Need a better way of accessing full size
+                                    // data besides just calling toJSON().
+                                    size = size || model.toJSON();
+
+                                    frame.close();
+                                    selection.clear();
+
+                                    $( '<img />', {
+                                        src:    size.url,
+                                        width:  size.width
+                                    }).prependTo( $element );
+                                }
                             }
-                        });
-
-                        workflow.selection.on( 'add', function( model ) {
-                            var sizes = model.get('sizes'),
-                                size;
-
-                            setMPTImage( model.id );
-
-                            // @todo: might need a size hierarchy equivalent.
-                            if ( sizes )
-                                size = sizes['<?php echo esc_js("{$this->post_type}-{$this->id}-thumbnail"); ?>'] || sizes.medium;
-
-                            // @todo: Need a better way of accessing full size
-                            // data besides just calling toJSON().
-                            size = size || model.toJSON();
-
-                            workflow.modal.close();
-                            workflow.selection.clear();
-
-                            $( '<img />', {
-                                src:    size.url,
-                                width:  size.width
-                            }).prependTo( $element );
-                        });
+                        }
+                        }) );
                     }
 
-                    workflow.modal.open();
+                    frame.open();  
                 });
 
                 $element.on( 'click', '.remove', function( event ) {
