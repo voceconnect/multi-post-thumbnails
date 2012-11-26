@@ -2,7 +2,7 @@
 Contributors: chrisscott, voceplatforms
 Tags: thumbnails, image, featured image
 Requires at least: 2.9.2
-Tested up to: 3.5-beta2
+Tested up to: 3.5
 Stable tag: 1.5
 
 Adds multiple post thumbnails to a post type. If you've ever wanted more than one Featured Image on a post, this plugin is for you.
@@ -24,7 +24,9 @@ Adds multiple post thumbnails to a post type. If you've ever wanted more than on
             }
 4. Display the thumbnail in your theme. e.g. for loop templates (outside of the loop, the first argument to `MultiPostThumbnails::the_post_thumbnail()` will need to be the post type):
 
-            <?php if (class_exists('MultiPostThumbnails')) : MultiPostThumbnails::the_post_thumbnail(get_post_type(), 'secondary-image'); endif; ?>
+            <?php if (class_exists('MultiPostThumbnails')) : 
+                MultiPostThumbnails::the_post_thumbnail(get_post_type(), 'secondary-image');
+            endif; ?>
 
 == Frequently Asked Questions ==
 
