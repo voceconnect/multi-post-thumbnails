@@ -123,11 +123,12 @@ Pancakes.
 
 = 1.5 =
 
-* Add support for using new media modal chooser in WordPress 3.5. Versions prior
-to 3.5 will continue to work using the old style media popup. NOTE: The modal 
-chooser used in 3.5 means that the post thumbnail addition/removal will not take 
-effect until the post is saved. This is a change from the old style media popup
-that used ajax to save/remove post thumbnails.
+* Add support for using the new media modal chooser in WordPress 3.5. Versions
+prior to 3.5 will continue to work using the old style media popup. NOTE: The
+modal chooser used in 3.5 means that the post thumbnail addition/removal will
+not take effect until the post is saved. This is a change from the old style 
+media popup that used ajax to save/remove post thumbnails.
+
 * Update `get_post_thumbnail_url` to accept an optional size parameter to allow 
 getting the URL for sizes other than the original size (props gabrielstuff).
 
