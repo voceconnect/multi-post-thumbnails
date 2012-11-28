@@ -129,6 +129,7 @@ if (!class_exists('MultiPostThumbnails')) {
                 #select-mpt-<?php echo esc_js($this->prefix); ?> .remove {display: none; margin-top: 10px; }
                 #select-mpt-<?php echo esc_js($this->prefix); ?>.has-featured-image .remove { display: inline-block; }
                 #select-mpt-<?php echo esc_js($this->prefix); ?> a { clear: both; float: left; }
+                #select-mpt-<?php echo esc_js($this->prefix); ?> img { height: auto; margin-bottom: 10px; max-width: 100%; }
             </style>
             <script type="text/javascript">
             jQuery( function($) {
@@ -193,8 +194,7 @@ if (!class_exists('MultiPostThumbnails')) {
 
                                     // @todo: might need a size hierarchy equivalent.
                                     if ( sizes )
-                                        size = sizes['<?php echo esc_js("{$this->post_type}-{$this->id}-thumbnail"); ?>'] || sizes.medium;
-                                        //size = sizes['post-thumbnail'] || sizes.medium;
+                                        size = sizes['<?php echo esc_js("{$this->post_type}-{$this->id}-thumbnail"); ?>'] || sizes['post-thumbnail'] || sizes.medium;
 
                                     // @todo: Need a better way of accessing full size
                                     // data besides just calling toJSON().
