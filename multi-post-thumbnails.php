@@ -82,6 +82,8 @@ if (!class_exists('MultiPostThumbnails')) {
 			add_action('add_meta_boxes', array($this, 'add_metabox'));
 			add_filter('attachment_fields_to_edit', array($this, 'add_attachment_field'), 20, 2);
 			add_action('admin_enqueue_scripts', array($this, 'enqueue_admin_scripts'));
+			add_action('admin_print_styles-post-new.php', array($this, 'hide_media_sidebar_fields'));
+			add_action('admin_print_styles-post.php', array($this, 'hide_media_sidebar_fields'));
 			add_action("wp_ajax_set-{$this->post_type}-{$this->id}-thumbnail", array($this, 'set_thumbnail'));
 			add_action('delete_attachment', array($this, 'action_delete_attachment'));
 		}
@@ -156,6 +158,10 @@ if (!class_exists('MultiPostThumbnails')) {
 
 			add_thickbox();
 			wp_enqueue_script( "featured-image-custom", $this->plugins_url( 'js/multi-post-thumbnails-admin.js', __FILE__ ), array( 'jquery', 'media-upload' ) );
+		}
+		
+		public function hide_media_sidebar_fields () {
+			echo sprintf('<style type="text/css">.media-sidebar tr.compat-field-%s-%s-thumbnail {display: none;}</style>', $this->post_type, $this->id);
 		}
 
 		/**
