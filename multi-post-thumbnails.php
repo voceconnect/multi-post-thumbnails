@@ -3,7 +3,7 @@
 Plugin Name: Multiple Post Thumbnails
 Plugin URI: http://wordpress.org/extend/plugins/multiple-post-thumbnails/
 Description: Adds the ability to add multiple post thumbnails to a post type.
-Version: 1.5
+Version: 1.4
 Author: Chris Scott
 Author URI: http://vocecommuncations.com/
 */
@@ -52,8 +52,6 @@ if (!class_exists('MultiPostThumbnails')) {
 		 * @return void
 		 */
 		public function register($args = array()) {
-            global $wp_version;
-            
 			$defaults = array(
 				'label' => null,
 				'id' => null,
@@ -75,26 +73,16 @@ if (!class_exists('MultiPostThumbnails')) {
 				}
 				return;
 			}
-            
-            $this->prefix = "{$this->post_type}-{$this->id}";
-            $this->meta_key = "{$this->post_type}_{$this->id}_thumbnail_id";
 
 			// add theme support if not already added
 			if (!current_theme_supports('post-thumbnails')) {
 				add_theme_support( 'post-thumbnails' );
 			}
 
-            // use modal style media popup for versions after 3.4.2. ugly, but works with 3.5 betas.
-            if (version_compare($wp_version, '3.4.2', '>')) {
-                add_action('add_meta_boxes', array($this, 'add_metabox_modal'));
-                add_action('save_post', array($this, 'action_save_post'));
-            } else {
-                add_action('add_meta_boxes', array($this, 'add_metabox'));
-                add_filter('attachment_fields_to_edit', array($this, 'add_attachment_field'), 20, 2);
-                add_action("wp_ajax_set-{$this->post_type}-{$this->id}-thumbnail", array($this, 'set_thumbnail'));
-                add_action('admin_enqueue_scripts', array($this, 'enqueue_admin_scripts'));
-            }
-			
+			add_action('add_meta_boxes', array($this, 'add_metabox'));
+			add_filter('attachment_fields_to_edit', array($this, 'add_attachment_field'), 20, 2);
+			add_action('admin_enqueue_scripts', array($this, 'enqueue_admin_scripts'));
+			add_action("wp_ajax_set-{$this->post_type}-{$this->id}-thumbnail", array($this, 'set_thumbnail'));
 			add_action('delete_attachment', array($this, 'action_delete_attachment'));
 		}
 
@@ -104,161 +92,9 @@ if (!class_exists('MultiPostThumbnails')) {
 		 * @return void
 		 */
 		public function add_metabox() {
-			add_meta_box($this->prefix, __($this->label), array($this, 'thumbnail_meta_box'), $this->post_type, 'side', $this->priority);
+			add_meta_box("{$this->post_type}-{$this->id}", __($this->label), array($this, 'thumbnail_meta_box'), $this->post_type, 'side', $this->priority);
 		}
-        
-        /**
-         * Add admin metabox for media modal chooser
-         *  
-         */
-        public function add_metabox_modal() {
-			add_meta_box($this->prefix, __($this->label), array($this, 'thumbnail_meta_box_modal'), $this->post_type, 'side', $this->priority);
-		}
-        
-        /**
-         * Output the metabox with the media modal chooser
-         * 
-         * @global type $_wp_additional_image_sizes
-         * @param type $post 
-         */
-        public function thumbnail_meta_box_modal($post) {
-			global $_wp_additional_image_sizes;
 
-            ?><style>
-                #select-mpt-<?php echo esc_js($this->prefix); ?> {overflow: hidden; padding: 4px 0;}
-                #select-mpt-<?php echo esc_js($this->prefix); ?> .remove {display: none; margin-top: 10px; }
-                #select-mpt-<?php echo esc_js($this->prefix); ?>.has-featured-image .remove { display: inline-block; }
-                #select-mpt-<?php echo esc_js($this->prefix); ?> a { clear: both; float: left; }
-                #select-mpt-<?php echo esc_js($this->prefix); ?> img { height: auto; margin-bottom: 10px; max-width: 100%; }
-            </style>
-            <script type="text/javascript">
-            jQuery( function($) {
-                var $element     = $('#select-mpt-<?php echo esc_js($this->prefix); ?>'),
-                    $thumbnailId = $element.find('input[name="<?php echo esc_js($this->prefix); ?>-thumbnail_id"]'),
-                    title        = 'Choose a <?php echo esc_js($this->label); ?>',
-                    update       = 'Update <?php echo esc_js($this->label); ?>',
-                    Attachment   = wp.media.model.Attachment,
-                    frame, setMPTImage;
-
-                setMPTImage = function( thumbnailId ) {
-                    var selection;
-                    
-                    $element.find('img').remove();
-                    $element.toggleClass( 'has-featured-image', -1 != thumbnailId );
-                    $thumbnailId.val( thumbnailId );
-                    
-                    if ( frame ) {
-                        selection = frame.get('library').get('selection');
-
-                        if ( -1 === thumbnailId )
-                            selection.clear();
-                        else
-                            selection.add( Attachment.get( thumbnailId ) );
-                    }
-                };
-
-                $element.on( 'click', '.choose, img', function( event ) {
-                    event.preventDefault();
-
-                   if ( frame ) {
-                        frame.open();
-                        return;
-                    }
-                    
-                    options = {
-                        title:   title,
-                        library: {
-                            type: 'image'
-                        }
-                    };
-                    
-                    thumbnailId = $thumbnailId.val();
-                    if ( '' !== thumbnailId && -1 !== thumbnailId )
-                        options.selection = [ Attachment.get( thumbnailId ) ];
-
-                    frame = wp.media( options );
-                    
-                    frame.toolbar.on( 'activate:select', function() {
-                        frame.toolbar.view().set({
-                            select: {
-                                style: 'primary',
-                                text:  update,
-
-                                click: function() {
-                                    var selection = frame.state().get('selection'),
-                                        model = selection.first(),
-                                        sizes = model.get('sizes'),
-                                        size;
-
-                                    setMPTImage( model.id );
-
-                                    // @todo: might need a size hierarchy equivalent.
-                                    if ( sizes )
-                                        size = sizes['<?php echo esc_js("{$this->post_type}-{$this->id}-thumbnail"); ?>'] || sizes['post-thumbnail'] || sizes.medium;
-
-                                    // @todo: Need a better way of accessing full size
-                                    // data besides just calling toJSON().
-                                    size = size || model.toJSON();
-
-                                    frame.close();
-
-                                    $( '<img />', {
-                                        src:    size.url,
-                                        width:  size.width
-                                    }).prependTo( $element );
-                                }
-                            }
-                        });
-                    });                    
-                        
- 
-                });
-
-                $element.on( 'click', '.remove', function( event ) {
-                    event.preventDefault();
-                    setMPTImage( -1 );
-                });
-            });
-            </script>
-
-            <?php
-            $thumbnail_id   = MultiPostThumbnails::get_post_thumbnail_id($this->post_type, $this->id, $post->ID);
-            $thumbnail_size = isset( $_wp_additional_image_sizes["{$this->prefix}-thumbnail"] ) ? "{$this->prefix}-thumbnail" : 'medium';
-            $thumbnail_html = wp_get_attachment_image( $thumbnail_id, $thumbnail_size );
-
-            $classes = empty( $thumbnail_id ) ? '' : 'has-featured-image';
-
-            ?><div id="select-mpt-<?php echo esc_attr($this->prefix); ?>"
-                class="<?php echo esc_attr( $classes ); ?>"
-                data-post-id="<?php echo esc_attr( $post->ID ); ?>">
-                <?php echo $thumbnail_html; ?>
-                <input type="hidden" name="<?php echo esc_js($this->prefix); ?>-thumbnail_id" value="<?php echo esc_attr( $thumbnail_id ); ?>" />
-                <a href="#" class="choose button-secondary">Choose a <?php echo esc_html($this->label); ?></a>
-                <a href="#" class="remove">Remove <?php echo esc_html($this->label); ?></a>
-            </div>
-            <?php
-		}
-        
-        /**
-         * Save or remove the thumbnail metadata. Only for WordPress version >=3.5 with modal media chooser.
-         * @param type $post_id 
-         */
-        public function action_save_post($post_id) {
-            if (! is_admin() || ! isset($_POST["{$this->prefix}-thumbnail_id"])) {
-                return;
-            }
-            
-            if (! empty($_POST["{$this->prefix}-thumbnail_id"])) {
-                $thumbnail_id = (int) $_POST["{$this->prefix}-thumbnail_id"];
-                if ('-1' == $thumbnail_id)
-                    delete_post_meta($post_id, $this->meta_key);
-                else
-                    update_post_meta($post_id, $this->meta_key, $thumbnail_id);
-            } else {
-                delete_post_meta($post_id, $this->meta_key);
-            }
-        }
-   
 		/**
 		 * Output the thumbnail meta box
 		 *
@@ -266,7 +102,7 @@ if (!class_exists('MultiPostThumbnails')) {
 		 */
 		public function thumbnail_meta_box() {
 			global $post;
-			$thumbnail_id = get_post_meta($post->ID, $this->meta_key, true);
+			$thumbnail_id = get_post_meta($post->ID, "{$this->post_type}_{$this->id}_thumbnail_id", true);
 			echo $this->post_thumbnail_html($thumbnail_id);
 		}
 
@@ -299,9 +135,9 @@ if (!class_exists('MultiPostThumbnails')) {
 			if( (isset($_REQUEST['context']) && $_REQUEST['context'] != $this->id) || (isset($query_vars['context']) && $query_vars['context'] != $this->id) )
 				return $form_fields;
 
-			$ajax_nonce = wp_create_nonce("set_post_thumbnail-{$this->prefix}-{$calling_post_id}");
+			$ajax_nonce = wp_create_nonce("set_post_thumbnail-{$this->post_type}-{$this->id}-{$calling_post_id}");
 			$link = sprintf('<a id="%4$s-%1$s-thumbnail-%2$s" class="%1$s-thumbnail" href="#" onclick="MultiPostThumbnails.setAsThumbnail(\'%2$s\', \'%1$s\', \'%4$s\', \'%5$s\');return false;">Set as %3$s</a>', $this->id, $post->ID, $this->label, $this->post_type, $ajax_nonce);
-			$form_fields["{$this->prefix}-thumbnail"] = array(
+			$form_fields["{$this->post_type}-{$this->id}-thumbnail"] = array(
 				'label' => $this->label,
 				'input' => 'html',
 				'html' => $link);
@@ -331,8 +167,8 @@ if (!class_exists('MultiPostThumbnails')) {
 		 */
 		public function action_delete_attachment($post_id) {
 			global $wpdb;
-            
-			$wpdb->query( $wpdb->prepare( "DELETE FROM $wpdb->postmeta WHERE meta_key = '%s' AND meta_value = %d", $this->meta_key, $post_id ));
+			$meta_key = "{$this->post_type}_{$this->id}_thumbnail_id";
+			$wpdb->query( $wpdb->prepare( "DELETE FROM $wpdb->postmeta WHERE meta_key = '%s' AND meta_value = %d", $meta_key, $post_id ));
 		}
 
 		private function plugins_url($relative_path, $plugin_path) {
@@ -374,7 +210,7 @@ if (!class_exists('MultiPostThumbnails')) {
 				return false;
 			}
 
-			return get_post_meta($post_id, $this->meta_key, true);
+			return get_post_meta($post_id, "{$post_type}_{$id}_thumbnail_id", true);
 		}
 
 		/**
@@ -438,27 +274,16 @@ if (!class_exists('MultiPostThumbnails')) {
 		 * @param string $post_type The post type.
 		 * @param string $id The id used to register the thumbnail.
 		 * @param int $post_id Optional. The post ID. If not set, will attempt to get it.
-         * @param string $size Optional. Image size. If not set, will return the original size image.
 		 * @return mixed Thumbnail url or false if the post doesn't have a thumbnail for the given post type, and id.
 		 */
-		public static function get_post_thumbnail_url($post_type, $id, $post_id = 0, $size = null) {
+		public static function get_post_thumbnail_url($post_type, $id, $post_id = 0) {
 			if (!$post_id) {
 				$post_id = get_the_ID();
 			}
 
 			$post_thumbnail_id = self::get_post_thumbnail_id($post_type, $id, $post_id);
-            
-            if ( $size ) {
-                if ( $url = wp_get_attachment_image_src( $post_thumbnail_id, $size ) ) {
-                    $url = $url[0];
-                } else {
-                    $url = '';
-                }
-            } else {
-                $url = wp_get_attachment_url( $post_thumbnail_id );
-            }
 
-			return $url;
+			return wp_get_attachment_url($post_thumbnail_id);
 		}
 
 		/**
@@ -479,12 +304,12 @@ if (!class_exists('MultiPostThumbnails')) {
 			if ($thumbnail_id && get_post($thumbnail_id)) {
 				$old_content_width = $content_width;
 				$content_width = 266;
-				if ( !isset($_wp_additional_image_sizes["{$this->prefix}-thumbnail"]))
+				if ( !isset($_wp_additional_image_sizes["{$this->post_type}-{$this->id}-thumbnail"]))
 					$thumbnail_html = wp_get_attachment_image($thumbnail_id, array($content_width, $content_width));
 				else
-					$thumbnail_html = wp_get_attachment_image($thumbnail_id, "{$this->prefix}-thumbnail");
+					$thumbnail_html = wp_get_attachment_image($thumbnail_id, "{$this->post_type}-{$this->id}-thumbnail");
 				if (!empty($thumbnail_html)) {
-					$ajax_nonce = wp_create_nonce("set_post_thumbnail-{$this->prefix}-{$post_ID}");
+					$ajax_nonce = wp_create_nonce("set_post_thumbnail-{$this->post_type}-{$this->id}-{$post_ID}");
 					$content = sprintf($set_thumbnail_link, $thumbnail_html);
 					$content .= sprintf('<p class="hide-if-no-js"><a href="#" id="remove-%1$s-%2$s-thumbnail" onclick="MultiPostThumbnails.removeThumbnail(\'%2$s\', \'%1$s\', \'%4$s\');return false;">%3$s</a></p>', $this->post_type, $this->id, esc_html__( "Remove {$this->label}" ), $ajax_nonce);
 				}
@@ -506,22 +331,34 @@ if (!class_exists('MultiPostThumbnails')) {
 				die('-1');
 			$thumbnail_id = intval($_POST['thumbnail_id']);
 
-			check_ajax_referer("set_post_thumbnail-{$this->prefix}-{$post_ID}");
+			check_ajax_referer("set_post_thumbnail-{$this->post_type}-{$this->id}-{$post_ID}");
 
 			if ($thumbnail_id == '-1') {
-				delete_post_meta($post_ID, $this->meta_key);
+				delete_post_meta($post_ID, "{$this->post_type}_{$this->id}_thumbnail_id");
 				die($this->post_thumbnail_html(null));
 			}
 
 			if ($thumbnail_id && get_post($thumbnail_id)) {
 				$thumbnail_html = wp_get_attachment_image($thumbnail_id, 'thumbnail');
 				if (!empty($thumbnail_html)) {
-					update_post_meta($post_ID, $this->meta_key, $thumbnail_id);
+					$this->set_meta($post_ID, $this->post_type, $this->id, $thumbnail_id);
 					die($this->post_thumbnail_html($thumbnail_id));
 				}
 			}
 
 			die('0');
+		}
+		
+		/**
+		 * set thumbnail meta
+		 * 
+		 * @param int $post_ID
+		 * @param string $post_type
+		 * @param int $thumbnail_id
+		 * @return bool result of update_post_meta
+		 */
+		public static function set_meta($post_ID, $post_type, $thumbnail_id, $thumbnail_post_id) {
+			return update_post_meta($post_ID, "{$post_type}_{$thumbnail_id}_thumbnail_id", $thumbnail_post_id);
 		}
 
 	}
