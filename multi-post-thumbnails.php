@@ -354,7 +354,8 @@ if (!class_exists('MultiPostThumbnails')) {
 		 * 
 		 * @param int $post_ID
 		 * @param string $post_type
-		 * @param int $thumbnail_id
+		 * @param string $thumbnail_id ID used to register the thumbnail
+		 * @param int $thumbnail_post_id ID of the attachment to use as the thumbnail
 		 * @return bool result of update_post_meta
 		 */
 		public static function set_meta($post_ID, $post_type, $thumbnail_id, $thumbnail_post_id) {
