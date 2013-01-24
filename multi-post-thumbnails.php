@@ -147,7 +147,7 @@ if (!class_exists('MultiPostThumbnails')) {
                     $thumbnailId.val( thumbnailId );
                     
                     if ( frame ) {
-                        selection = frame.get('library').get('selection');
+                        selection = frame.state().get('selection');
 
                         if ( -1 === thumbnailId )
                             selection.clear();
@@ -175,42 +175,33 @@ if (!class_exists('MultiPostThumbnails')) {
                     if ( '' !== thumbnailId && -1 !== thumbnailId )
                         options.selection = [ Attachment.get( thumbnailId ) ];
 
-                    frame = wp.media( options );
+                    frame = wp.media.frames.frame = wp.media( options );
                     
-                    frame.toolbar.on( 'activate:select', function() {
-                        frame.toolbar.view().set({
-                            select: {
-                                style: 'primary',
-                                text:  update,
+                    frame.on( 'select', function() {
+						var selection = frame.state().get('selection'),
+							model = selection.first(),
+							sizes = model.get('sizes'),
+							size;
 
-                                click: function() {
-                                    var selection = frame.state().get('selection'),
-                                        model = selection.first(),
-                                        sizes = model.get('sizes'),
-                                        size;
+						setMPTImage( model.id );
 
-                                    setMPTImage( model.id );
+						// @todo: might need a size hierarchy equivalent.
+						if ( sizes )
+							size = sizes['<?php echo esc_js("{$this->post_type}-{$this->id}-thumbnail"); ?>'] || sizes.medium;
+							//size = sizes['post-thumbnail'] || sizes.medium;
 
-                                    // @todo: might need a size hierarchy equivalent.
-                                    if ( sizes )
-                                        size = sizes['<?php echo esc_js("{$this->post_type}-{$this->id}-thumbnail"); ?>'] || sizes.medium;
-                                        //size = sizes['post-thumbnail'] || sizes.medium;
+						// @todo: Need a better way of accessing full size
+						// data besides just calling toJSON().
+						size = size || model.toJSON();
 
-                                    // @todo: Need a better way of accessing full size
-                                    // data besides just calling toJSON().
-                                    size = size || model.toJSON();
+						frame.close();
 
-                                    frame.close();
-
-                                    $( '<img />', {
-                                        src:    size.url,
-                                        width:  size.width
-                                    }).prependTo( $element );
-                                }
-                            }
-                        });
+						$( '<img />', {
+							src:    size.url,
+							width:  size.width
+						}).prependTo( $element );
                     });                    
-                        
+					frame.open();        
  
                 });
 
