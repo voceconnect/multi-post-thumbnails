@@ -88,13 +88,14 @@ if (!class_exists('MultiPostThumbnails')) {
             if (version_compare($wp_version, '3.4.2', '>')) {
                 add_action('add_meta_boxes', array($this, 'add_metabox_modal'));
                 add_action('save_post', array($this, 'action_save_post'));
+                add_action('admin_enqueue_scripts', array($this, 'enqueue_admin_scripts'));
             } else {
                 add_action('add_meta_boxes', array($this, 'add_metabox'));
                 add_filter('attachment_fields_to_edit', array($this, 'add_attachment_field'), 20, 2);
                 add_action("wp_ajax_set-{$this->post_type}-{$this->id}-thumbnail", array($this, 'set_thumbnail'));
                 add_action('admin_enqueue_scripts', array($this, 'enqueue_admin_scripts'));
             }
-			
+
 			add_action('delete_attachment', array($this, 'action_delete_attachment'));
 		}
 
@@ -147,8 +148,8 @@ if (!class_exists('MultiPostThumbnails')) {
                     $thumbnailId.val( thumbnailId );
                     
                     if ( frame ) {
-                        selection = frame.get('library').get('selection');
-
+                        selection = frame.state().get('selection');
+                        // console.log(frame);
                         if ( -1 === thumbnailId )
                             selection.clear();
                         else
@@ -175,44 +176,36 @@ if (!class_exists('MultiPostThumbnails')) {
                     if ( '' !== thumbnailId && -1 !== thumbnailId )
                         options.selection = [ Attachment.get( thumbnailId ) ];
 
-                    frame = wp.media( options );
-                    
-                    frame.toolbar.on( 'activate:select', function() {
-                        frame.toolbar.view().set({
-                            select: {
-                                style: 'primary',
-                                text:  update,
+                    frame = wp.media.frames.frame = wp.media( options );
+                    frame.on( 'select', function() {
+                    	var selection = frame.state().get('selection'),
+                            model = selection.first(),
+                            sizes = model.attributes.sizes,
+                            size;
+                        setMPTImage( model.id );
 
-                                click: function() {
-                                    var selection = frame.state().get('selection'),
-                                        model = selection.first(),
-                                        sizes = model.get('sizes'),
-                                        size;
+                        // @todo: might need a size hierarchy equivalent.
+                        if ( sizes )
+                            size = sizes['<?php echo esc_js("{$this->post_type}-{$this->id}-thumbnail"); ?>'] || sizes.medium;
+                            //size = sizes['post-thumbnail'] || sizes.medium;
 
-                                    setMPTImage( model.id );
+                        // @todo: Need a better way of accessing full size
+                        // data besides just calling toJSON().
+                        size = size || model.toJSON();
 
-                                    // @todo: might need a size hierarchy equivalent.
-                                    if ( sizes )
-                                        size = sizes['<?php echo esc_js("{$this->post_type}-{$this->id}-thumbnail"); ?>'] || sizes.medium;
-                                        //size = sizes['post-thumbnail'] || sizes.medium;
+                        frame.close();
 
-                                    // @todo: Need a better way of accessing full size
-                                    // data besides just calling toJSON().
-                                    size = size || model.toJSON();
+                        $( '<img />', {
+                            src:    size.url,
+                            width:  size.width
+                        }).prependTo( $element );
+                                
 
-                                    frame.close();
-
-                                    $( '<img />', {
-                                        src:    size.url,
-                                        width:  size.width
-                                    }).prependTo( $element );
-                                }
-                            }
-                        });
                     });                    
                         
  
                 });
+
 
                 $element.on( 'click', '.remove', function( event ) {
                     event.preventDefault();
@@ -283,7 +276,7 @@ if (!class_exists('MultiPostThumbnails')) {
 				$calling_post_id = absint($_GET['post_id']);
 			elseif (isset($_POST) && count($_POST)) // Like for async-upload where $_GET['post_id'] isn't set
 				$calling_post_id = $post->post_parent;
-			
+
 			if (!$calling_post_id)
 				return $form_fields;
 
@@ -295,7 +288,7 @@ if (!class_exists('MultiPostThumbnails')) {
 
 			$referer = wp_get_referer();
 			$query_vars = wp_parse_args(parse_url($referer, PHP_URL_QUERY));
-			
+
 			if( (isset($_REQUEST['context']) && $_REQUEST['context'] != $this->id) || (isset($query_vars['context']) && $query_vars['context'] != $this->id) )
 				return $form_fields;
 
@@ -319,7 +312,7 @@ if (!class_exists('MultiPostThumbnails')) {
 				return;
 
 			add_thickbox();
-			wp_enqueue_script( "featured-image-custom", $this->plugins_url( 'js/multi-post-thumbnails-admin.js', __FILE__ ), array( 'jquery', 'media-upload' ) );
+			wp_enqueue_script( "featured-image-custom", get_template_directory_uri() . '/js/index-image.js', array( 'jquery', 'media-upload' ) );
 		}
 
 		/**
@@ -333,28 +326,6 @@ if (!class_exists('MultiPostThumbnails')) {
 			global $wpdb;
             
 			$wpdb->query( $wpdb->prepare( "DELETE FROM $wpdb->postmeta WHERE meta_key = '%s' AND meta_value = %d", $this->meta_key, $post_id ));
-		}
-
-		private function plugins_url($relative_path, $plugin_path) {
-			$template_dir = get_template_directory();
-
-			foreach ( array('template_dir', 'plugin_path') as $var ) {
-				$$var = str_replace('\\' ,'/', $$var); // sanitize for Win32 installs
-				$$var = preg_replace('|/+|', '/', $$var);
-			}
-			if(0 === strpos($plugin_path, $template_dir)) {
-				$url = get_template_directory_uri();
-				$folder = str_replace($template_dir, '', dirname($plugin_path));
-				if ( '.' != $folder ) {
-					$url .= '/' . ltrim($folder, '/');
-				}
-				if ( !empty($relative_path) && is_string($relative_path) && strpos($relative_path, '..') === false ) {
-					$url .= '/' . ltrim($relative_path, '/');
-				}
-				return $url;
-			} else {
-				return plugins_url($relative_path, $plugin_path);
-			}
 		}
 
 		/**
