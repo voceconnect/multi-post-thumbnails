@@ -201,7 +201,7 @@ if (!class_exists('MultiPostThumbnails')) {
 							width:  size.width
 						}).prependTo( $element );
                     });                    
-                        
+					frame.open();        
  
                 });
 
