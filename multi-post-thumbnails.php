@@ -280,16 +280,27 @@ if (!class_exists('MultiPostThumbnails')) {
 		 * @param string $post_type The post type.
 		 * @param string $id The id used to register the thumbnail.
 		 * @param int $post_id Optional. The post ID. If not set, will attempt to get it.
+		 * @param string $size Optional. The thumbnail size to use. If set, use wp_get_attachment_image_src() instead of wp_get_attachment_url()
 		 * @return mixed Thumbnail url or false if the post doesn't have a thumbnail for the given post type, and id.
 		 */
-		public static function get_post_thumbnail_url($post_type, $id, $post_id = 0) {
+		public static function get_post_thumbnail_url($post_type, $id, $post_id = 0, $size = null) {
 			if (!$post_id) {
 				$post_id = get_the_ID();
 			}
 
 			$post_thumbnail_id = self::get_post_thumbnail_id($post_type, $id, $post_id);
 
-			return wp_get_attachment_url($post_thumbnail_id);
+			if ($size) {
+				if ($url = wp_get_attachment_image_src($post_thumbnail_id, $size)) {
+					$url = $url[0];
+				} else {
+					$url = '';
+				}
+			} else {
+				$url = wp_get_attachment_url($post_thumbnail_id);
+			}
+
+			return $url;
 		}
 
 		/**
