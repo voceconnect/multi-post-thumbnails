@@ -104,6 +104,7 @@ Pancakes.
 = 1.4.1 =
 
 * Add a `size` parameter to `MultiPostThumbnails::get_post_thumbnail_url` to allow getting any registered size.
+* Add `context` option to the args accepted when instantiating a new `MultiPostThumbnails` to specify the metabox context. Defaults to `side` (which it was previously hard coded to).
 
 = 1.4 =
 

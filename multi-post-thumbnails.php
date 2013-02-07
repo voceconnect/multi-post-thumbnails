@@ -46,7 +46,9 @@ if (!class_exists('MultiPostThumbnails')) {
 		 *
 		 * post_type - The post type to register this thumbnail for. Defaults to post.
 		 *
-		 * priority - The admin metabox priority. Defaults to low to show after normal post thumbnail meta box.
+		 * priority - The admin metabox priority. Defaults to 'low'.
+		 * 
+		 * context - The admin metabox context. Defaults to 'side'.
 		 *
 		 * @param array|string $args See above description.
 		 * @return void
@@ -57,6 +59,7 @@ if (!class_exists('MultiPostThumbnails')) {
 				'id' => null,
 				'post_type' => 'post',
 				'priority' => 'low',
+				'context' => 'side',
 			);
 
 			$args = wp_parse_args($args, $defaults);
@@ -94,7 +97,7 @@ if (!class_exists('MultiPostThumbnails')) {
 		 * @return void
 		 */
 		public function add_metabox() {
-			add_meta_box("{$this->post_type}-{$this->id}", __($this->label), array($this, 'thumbnail_meta_box'), $this->post_type, 'side', $this->priority);
+			add_meta_box("{$this->post_type}-{$this->id}", __($this->label), array($this, 'thumbnail_meta_box'), $this->post_type, $this->context, $this->priority);
 		}
 
 		/**
