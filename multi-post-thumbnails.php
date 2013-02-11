@@ -72,7 +72,7 @@ if (!class_exists('MultiPostThumbnails')) {
 			// Need these args to be set at a minimum
 			if (null === $this->label || null === $this->id) {
 				if (WP_DEBUG) {
-					trigger_error(sprintf("The 'label' and 'id' values of the 'args' parameter of '%s::%s()' are required", __CLASS__, __FUNCTION__));
+					trigger_error(sprintf(__("The 'label' and 'id' values of the 'args' parameter of '%s::%s()' are required", 'multiple-post-thumbnails'), __CLASS__, __FUNCTION__));
 				}
 				return;
 			}
@@ -134,7 +134,7 @@ if (!class_exists('MultiPostThumbnails')) {
 				$calling_post_id = absint($_GET['post_id']);
 			elseif (isset($_POST) && count($_POST)) // Like for async-upload where $_GET['post_id'] isn't set
 				$calling_post_id = $post->post_parent;
-			
+
 			if (!$calling_post_id)
 				return $form_fields;
 
@@ -151,7 +151,7 @@ if (!class_exists('MultiPostThumbnails')) {
 				return $form_fields;
 
 			$ajax_nonce = wp_create_nonce("set_post_thumbnail-{$this->post_type}-{$this->id}-{$calling_post_id}");
-			$link = sprintf('<a id="%4$s-%1$s-thumbnail-%2$s" class="%1$s-thumbnail" href="#" onclick="MultiPostThumbnails.setAsThumbnail(\'%2$s\', \'%1$s\', \'%4$s\', \'%5$s\');return false;">Set as %3$s</a>', $this->id, $post->ID, $this->label, $this->post_type, $ajax_nonce);
+			$link = sprintf('<a id="%4$s-%1$s-thumbnail-%2$s" class="%1$s-thumbnail" href="#" onclick="MultiPostThumbnailsSetAsThumbnail(\'%2$s\', \'%1$s\', \'%4$s\', \'%5$s\');return false;">' . __( 'Set as %3$s', 'multiple-post-thumbnails' ) . '</a>', $this->id, $post->ID, $this->label, $this->post_type, $ajax_nonce);
 			$form_fields["{$this->post_type}-{$this->id}-thumbnail"] = array(
 				'label' => $this->label,
 				'input' => 'html',
@@ -412,4 +412,7 @@ if (!class_exists('MultiPostThumbnails')) {
 		}
 
 	}
+
+	if ( is_admin() )
+		load_plugin_textdomain( 'multiple-post-thumbnails', FALSE, 'multiple-post-thumbnails/languages/' );
 }
