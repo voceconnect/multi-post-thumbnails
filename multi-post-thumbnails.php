@@ -89,6 +89,16 @@ if (!class_exists('MultiPostThumbnails')) {
 			add_action('admin_print_styles-post.php', array($this, 'hide_media_sidebar_fields'));
 			add_action("wp_ajax_set-{$this->post_type}-{$this->id}-thumbnail", array($this, 'set_thumbnail'));
 			add_action('delete_attachment', array($this, 'action_delete_attachment'));
+			add_filter('is_protected_meta', array($this, 'filter_is_protected_meta'), 20, 2);
+		}
+		
+		/**
+		 * get the meta key used to store a post's thumbnail
+		 * 
+		 * @return string 
+		 */
+		public function get_meta_key() {
+			return "{$this->post_type}_{$this->id}_thumbnail_id";
 		}
 
 		/**
@@ -107,7 +117,7 @@ if (!class_exists('MultiPostThumbnails')) {
 		 */
 		public function thumbnail_meta_box() {
 			global $post;
-			$thumbnail_id = get_post_meta($post->ID, "{$this->post_type}_{$this->id}_thumbnail_id", true);
+			$thumbnail_id = get_post_meta($post->ID, $this->get_meta_key(), true);
 			echo $this->post_thumbnail_html($thumbnail_id);
 		}
 
@@ -176,8 +186,27 @@ if (!class_exists('MultiPostThumbnails')) {
 		 */
 		public function action_delete_attachment($post_id) {
 			global $wpdb;
-			$meta_key = "{$this->post_type}_{$this->id}_thumbnail_id";
-			$wpdb->query( $wpdb->prepare( "DELETE FROM $wpdb->postmeta WHERE meta_key = '%s' AND meta_value = %d", $meta_key, $post_id ));
+
+			$wpdb->query( $wpdb->prepare( "DELETE FROM $wpdb->postmeta WHERE meta_key = '%s' AND meta_value = %d", $this->get_meta_key(), $post_id ));
+		}
+		
+		/**
+		 * make the meta for storing thumbnails protected so it doesn't show in the Custom Fields metabox
+		 * 
+		 * @param boolean $protected Passed in from filter
+		 * @param type $meta_key Passed in from filter
+		 * @return boolean 
+		 */
+		public function filter_is_protected_meta($protected, $meta_key) {
+			if (apply_filters('mpt_unprotect_meta', false)) {
+				return $protected;
+			}
+			
+			if ($meta_key == $this->get_meta_key()) {
+				$protected = true;
+			}
+			
+			return $protected;
 		}
 
 		private function plugins_url($relative_path, $plugin_path) {
@@ -354,7 +383,7 @@ if (!class_exists('MultiPostThumbnails')) {
 			check_ajax_referer("set_post_thumbnail-{$this->post_type}-{$this->id}-{$post_ID}");
 
 			if ($thumbnail_id == '-1') {
-				delete_post_meta($post_ID, "{$this->post_type}_{$this->id}_thumbnail_id");
+				delete_post_meta($post_ID, $this->get_meta_key());
 				die($this->post_thumbnail_html(null));
 			}
 

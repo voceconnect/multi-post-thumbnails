@@ -85,6 +85,10 @@ For example, for a thumbnail registered with an `id` of `secondary-image` and `p
 
 If you are using a symlink to include the plugin directory in your project, the admin js file will not load and cause this. Unfortunately, the solution is to not use symlinks due to the behavior of PHP's `__FILE__`
 
+= Is there a way to show the post meta where the thumbnail IDs are stored in the Custom Fields metabox?
+
+Since version 1.4.1 these are hidden by default. To unhide them, add `add_filter('mpt_unprotect_meta', '__return_true');` to your theme's `functions.php`
+
 = Is there a github repo? I love me some submodules! =
 
 Yes. https://github.com/voceconnect/multi-post-thumbnails
@@ -105,6 +109,7 @@ Pancakes.
 
 * Add a `size` parameter to `MultiPostThumbnails::get_post_thumbnail_url` to allow getting any registered size.
 * Add `context` option to the args accepted when instantiating a new `MultiPostThumbnails` to specify the metabox context. Defaults to `side` (which it was previously hard coded to).
+* Filter `is_protected_meta` to hide meta from the Custom Fields metabox by default (props willroy). To unhide them, add `add_filter('mpt_unprotect_meta', '__return_true');` to your theme's `functions.php`.
 
 = 1.4 =
 
