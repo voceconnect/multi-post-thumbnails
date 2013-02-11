@@ -3,7 +3,7 @@ Contributors: chrisscott, voceplatforms
 Tags: thumbnails, image, featured image
 Requires at least: 2.9.2
 Tested up to: 3.5
-Stable tag: 1.4.1
+Stable tag: 1.5
 
 Adds multiple post thumbnails to a post type. If you've ever wanted more than one Featured Image on a post, this plugin is for you.
 
@@ -87,7 +87,7 @@ If you are using a symlink to include the plugin directory in your project, the 
 
 = Is there a way to show the post meta where the thumbnail IDs are stored in the Custom Fields metabox?
 
-Since version 1.4.1 these are hidden by default. To unhide them, add `add_filter('mpt_unprotect_meta', '__return_true');` to your theme's `functions.php`
+Since version 1.5 these are hidden by default. To unhide them, add `add_filter('mpt_unprotect_meta', '__return_true');` to your theme's `functions.php`
 
 = Is there a github repo? I love me some submodules! =
 
@@ -105,11 +105,12 @@ Pancakes.
 
 == Changelog ==
 
-= 1.4.1 =
+= 1.5 =
 
 * Add a `size` parameter to `MultiPostThumbnails::get_post_thumbnail_url` to allow getting any registered size.
 * Add `context` option to the args accepted when instantiating a new `MultiPostThumbnails` to specify the metabox context. Defaults to `side` (which it was previously hard coded to).
 * Filter `is_protected_meta` to hide meta from the Custom Fields metabox by default (props willroy). To unhide them, add `add_filter('mpt_unprotect_meta', '__return_true');` to your theme's `functions.php`.
+* il8n courtesy Horttcore
 
 = 1.4 =
 
