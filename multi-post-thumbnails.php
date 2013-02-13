@@ -107,7 +107,7 @@ if (!class_exists('MultiPostThumbnails')) {
 		 * @return void
 		 */
 		public function add_metabox() {
-			add_meta_box("{$this->post_type}-{$this->id}", __($this->label), array($this, 'thumbnail_meta_box'), $this->post_type, $this->context, $this->priority);
+			add_meta_box("{$this->post_type}-{$this->id}", __($this->label, 'multiple-post-thumbnails'), array($this, 'thumbnail_meta_box'), $this->post_type, $this->context, $this->priority);
 		}
 
 		/**
@@ -346,8 +346,9 @@ if (!class_exists('MultiPostThumbnails')) {
 			$image_library_url = get_upload_iframe_src('image');
 			 // if TB_iframe is not moved to end of query string, thickbox will remove all query args after it.
 			$image_library_url = add_query_arg( array( 'context' => $this->id, 'TB_iframe' => 1 ), remove_query_arg( 'TB_iframe', $image_library_url ) );
-			$set_thumbnail_link = sprintf('<p class="hide-if-no-js"><a title="%1$s" href="%2$s" id="set-%3$s-%4$s-thumbnail" class="thickbox">%%s</a></p>', esc_attr__( "Set {$this->label}" ), $image_library_url, $this->post_type, $this->id);
-			$content = sprintf($set_thumbnail_link, esc_html__( "Set {$this->label}" ));
+			$format_string = '<p class="hide-if-no-js"><a title="%1$s" href="%2$s" id="set-%3$s-%4$s-thumbnail" class="thickbox">%%s</a></p>';
+			$set_thumbnail_link = sprintf( $format_string, sprintf( esc_attr__( "Set %s" , 'multiple-post-thumbnails' ), $this->label ), $image_library_url, $this->post_type, $this->id );
+			$content = sprintf( $set_thumbnail_link, sprintf( esc_html__( "Set %s", 'multiple-post-thumbnails' ), $this->label ) );
 
 
 			if ($thumbnail_id && get_post($thumbnail_id)) {
@@ -360,7 +361,8 @@ if (!class_exists('MultiPostThumbnails')) {
 				if (!empty($thumbnail_html)) {
 					$ajax_nonce = wp_create_nonce("set_post_thumbnail-{$this->post_type}-{$this->id}-{$post_ID}");
 					$content = sprintf($set_thumbnail_link, $thumbnail_html);
-					$content .= sprintf('<p class="hide-if-no-js"><a href="#" id="remove-%1$s-%2$s-thumbnail" onclick="MultiPostThumbnails.removeThumbnail(\'%2$s\', \'%1$s\', \'%4$s\');return false;">%3$s</a></p>', $this->post_type, $this->id, esc_html__( "Remove {$this->label}" ), $ajax_nonce);
+					$format_string = '<p class="hide-if-no-js"><a href="#" id="remove-%1$s-%2$s-thumbnail" onclick="MultiPostThumbnails.removeThumbnail(\'%2$s\', \'%1$s\', \'%4$s\');return false;">%3$s</a></p>';
+					$content .= sprintf( $format_string, $this->post_type, $this->id, sprintf( esc_html__( "Remove %s", 'multiple-post-thumbnails' ), $this->label ), $ajax_nonce );
 				}
 				$content_width = $old_content_width;
 			}
@@ -414,5 +416,5 @@ if (!class_exists('MultiPostThumbnails')) {
 	}
 
 	if ( is_admin() )
-		load_plugin_textdomain( 'multiple-post-thumbnails', FALSE, 'multiple-post-thumbnails/languages/' );
+		load_plugin_textdomain( 'multiple-post-thumbnails', FALSE, 'multi-post-thumbnails/languages/' );
 }
