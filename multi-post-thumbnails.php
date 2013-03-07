@@ -416,5 +416,5 @@ if (!class_exists('MultiPostThumbnails')) {
 	}
 
 	if ( is_admin() )
-		load_plugin_textdomain( 'multiple-post-thumbnails', FALSE, 'multiple-post-thumbnails/languages/' );
+		load_plugin_textdomain( 'multiple-post-thumbnails', FALSE, basename( dirname( __FILE__ ) ) . '/languages/' );
 }
