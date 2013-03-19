@@ -182,14 +182,13 @@ if (!class_exists('MultiPostThumbnails')) {
 				add_thickbox();
 				wp_enqueue_script( "mpt-featured-image", $this->plugins_url( 'js/multi-post-thumbnails-admin.js', __FILE__ ), array( 'jquery', 'media-upload' ) );
 			} else { // 3.5+ media modal
-				wp_enqueue_media();
 				wp_enqueue_script( "mpt-featured-image", $this->plugins_url( 'js/multi-post-thumbnails-admin.js', __FILE__ ), array( 'jquery', 'media-upload', 'set-post-thumbnail' ) );
 				wp_enqueue_script( "mpt-featured-image-modal", $this->plugins_url( 'js/media-modal.js', __FILE__ ), array( 'jquery', 'media-models' ) );				
 			}
 		}
 		
 		public function admin_header_scripts() {
-			global $post_id;
+			$post_id = get_the_ID();
 			echo "<script>var post_id = $post_id;</script>";
 		}
 		
@@ -377,6 +376,7 @@ if (!class_exists('MultiPostThumbnails')) {
 				$js = sprintf(
 					'var %3$s = new MediaModal({
 						$button : jQuery("#set-%1$s-%2$s-thumbnail"),
+						post_id : post_id,
 						cb : function(attachment){
 							MultiPostThumbnails.setAsThumbnail(attachment.id, "%2$s", "%1$s", "%4$s");
 						}
