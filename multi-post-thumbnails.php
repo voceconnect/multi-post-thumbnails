@@ -374,7 +374,7 @@ if (!class_exists('MultiPostThumbnails')) {
 			} else {
 				$image_library_url = "#";
 				$js = sprintf(
-					'var %3$s = new MediaModal({
+					'var mm_%3$s = new MediaModal({
 						$button : jQuery("#set-%1$s-%2$s-thumbnail"),
 						post_id : post_id,
 						cb : function(attachment){
