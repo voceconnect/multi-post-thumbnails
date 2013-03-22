@@ -3,7 +3,7 @@
 Plugin Name: Multiple Post Thumbnails
 Plugin URI: http://wordpress.org/extend/plugins/multiple-post-thumbnails/
 Description: Adds the ability to add multiple post thumbnails to a post type.
-Version: 1.5
+Version: 1.6
 Author: Chris Scott
 Author URI: http://voceplatforms.com/
 */
@@ -89,8 +89,6 @@ if (!class_exists('MultiPostThumbnails')) {
 				add_filter('attachment_fields_to_edit', array($this, 'add_attachment_field'), 20, 2);
 			}
 			add_action('admin_enqueue_scripts', array($this, 'enqueue_admin_scripts'));
-			//add_action('admin_print_styles-post-new.php', array($this, 'hide_media_sidebar_fields'));
-			//add_action('admin_print_styles-post.php', array($this, 'hide_media_sidebar_fields'));
 			add_action('admin_print_scripts-post.php', array($this, 'admin_header_scripts'));
 			add_action('admin_print_scripts-post-new.php', array($this, 'admin_header_scripts'));
 			add_action("wp_ajax_set-{$this->post_type}-{$this->id}-thumbnail", array($this, 'set_thumbnail'));
@@ -190,10 +188,6 @@ if (!class_exists('MultiPostThumbnails')) {
 		public function admin_header_scripts() {
 			$post_id = get_the_ID();
 			echo "<script>var post_id = $post_id;</script>";
-		}
-		
-		public function hide_media_sidebar_fields () {
-			echo sprintf('<style type="text/css">.media-sidebar tr.compat-field-%s-%s-thumbnail {display: none;}</style>', $this->post_type, $this->id);
 		}
 
 		/**
