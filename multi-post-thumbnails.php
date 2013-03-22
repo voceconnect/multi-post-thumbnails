@@ -54,6 +54,8 @@ if (!class_exists('MultiPostThumbnails')) {
 		 * @return void
 		 */
 		public function register($args = array()) {
+			global $wp_version;
+			
 			$defaults = array(
 				'label' => null,
 				'id' => null,
@@ -83,10 +85,14 @@ if (!class_exists('MultiPostThumbnails')) {
 			}
 
 			add_action('add_meta_boxes', array($this, 'add_metabox'));
-			add_filter('attachment_fields_to_edit', array($this, 'add_attachment_field'), 20, 2);
+			if (version_compare($wp_version, '3.5', '<')) {				
+				add_filter('attachment_fields_to_edit', array($this, 'add_attachment_field'), 20, 2);
+			}
 			add_action('admin_enqueue_scripts', array($this, 'enqueue_admin_scripts'));
-			add_action('admin_print_styles-post-new.php', array($this, 'hide_media_sidebar_fields'));
-			add_action('admin_print_styles-post.php', array($this, 'hide_media_sidebar_fields'));
+			//add_action('admin_print_styles-post-new.php', array($this, 'hide_media_sidebar_fields'));
+			//add_action('admin_print_styles-post.php', array($this, 'hide_media_sidebar_fields'));
+			add_action('admin_print_scripts-post.php', array($this, 'admin_header_scripts'));
+			add_action('admin_print_scripts-post-new.php', array($this, 'admin_header_scripts'));
 			add_action("wp_ajax_set-{$this->post_type}-{$this->id}-thumbnail", array($this, 'set_thumbnail'));
 			add_action('delete_attachment', array($this, 'action_delete_attachment'));
 			add_filter('is_protected_meta', array($this, 'filter_is_protected_meta'), 20, 2);
@@ -117,8 +123,9 @@ if (!class_exists('MultiPostThumbnails')) {
 		 */
 		public function thumbnail_meta_box() {
 			global $post;
+			
 			$thumbnail_id = get_post_meta($post->ID, $this->get_meta_key(), true);
-			echo $this->post_thumbnail_html($thumbnail_id);
+			echo $this->post_thumbnail_html($thumbnail_id);	
 		}
 
 		/**
@@ -165,12 +172,24 @@ if (!class_exists('MultiPostThumbnails')) {
 		 * @return void
 		 */
 		public function enqueue_admin_scripts( $hook ) {
+			global $wp_version;
+			
 			// only load on select pages
 			if ( ! in_array( $hook, array( 'post-new.php', 'post.php', 'media-upload-popup' ) ) )
 				return;
 
-			add_thickbox();
-			wp_enqueue_script( "featured-image-custom", $this->plugins_url( 'js/multi-post-thumbnails-admin.js', __FILE__ ), array( 'jquery', 'media-upload' ) );
+			if (version_compare($wp_version, '3.5', '<')) {	
+				add_thickbox();
+				wp_enqueue_script( "mpt-featured-image", $this->plugins_url( 'js/multi-post-thumbnails-admin.js', __FILE__ ), array( 'jquery', 'media-upload' ) );
+			} else { // 3.5+ media modal
+				wp_enqueue_script( "mpt-featured-image", $this->plugins_url( 'js/multi-post-thumbnails-admin.js', __FILE__ ), array( 'jquery', 'media-upload', 'set-post-thumbnail' ) );
+				wp_enqueue_script( "mpt-featured-image-modal", $this->plugins_url( 'js/media-modal.js', __FILE__ ), array( 'jquery', 'media-models' ) );				
+			}
+		}
+		
+		public function admin_header_scripts() {
+			$post_id = get_the_ID();
+			echo "<script>var post_id = $post_id;</script>";
 		}
 		
 		public function hide_media_sidebar_fields () {
@@ -342,14 +361,33 @@ if (!class_exists('MultiPostThumbnails')) {
 		 * @return string HTML
 		 */
 		private function post_thumbnail_html($thumbnail_id = null) {
-			global $content_width, $_wp_additional_image_sizes, $post_ID;
-			$image_library_url = get_upload_iframe_src('image');
-			 // if TB_iframe is not moved to end of query string, thickbox will remove all query args after it.
-			$image_library_url = add_query_arg( array( 'context' => $this->id, 'TB_iframe' => 1 ), remove_query_arg( 'TB_iframe', $image_library_url ) );
-			$format_string = '<p class="hide-if-no-js"><a title="%1$s" href="%2$s" id="set-%3$s-%4$s-thumbnail" class="thickbox">%%s</a></p>';
-			$set_thumbnail_link = sprintf( $format_string, sprintf( esc_attr__( "Set %s" , 'multiple-post-thumbnails' ), $this->label ), $image_library_url, $this->post_type, $this->id );
+			global $content_width, $_wp_additional_image_sizes, $post_ID, $wp_version;
+			
+			$url_class = "";
+			$ajax_nonce = wp_create_nonce("set_post_thumbnail-{$this->post_type}-{$this->id}-{$post_ID}");
+			
+			if (version_compare($wp_version, '3.5', '<')) {
+				// Use the old thickbox for versions prior to 3.5
+				$image_library_url = get_upload_iframe_src('image');
+				// if TB_iframe is not moved to end of query string, thickbox will remove all query args after it.
+				$image_library_url = add_query_arg( array( 'context' => $this->id, 'TB_iframe' => 1 ), remove_query_arg( 'TB_iframe', $image_library_url ) );
+				$url_class = "thickbox";
+			} else {
+				// Use the media modal for 3.5 and up
+				$image_library_url = "#";
+				$modal_js = sprintf(
+					'var mm_%3$s = new MediaModal({
+						calling_selector : "#set-%1$s-%2$s-thumbnail",
+						cb : function(attachment){
+							MultiPostThumbnails.setAsThumbnail(attachment.id, "%2$s", "%1$s", "%4$s");
+						}
+					});',
+					$this->post_type, $this->id, md5($this->id), $ajax_nonce
+				);
+			}
+			$format_string = '<p class="hide-if-no-js"><a title="%1$s" href="%2$s" id="set-%3$s-%4$s-thumbnail" class="%5$s" data-thumbnail_id="%7$s" data-uploader_title="%1$s" data-uploader_button_text="%1$s">%%s</a></p>';
+			$set_thumbnail_link = sprintf( $format_string, sprintf( esc_attr__( "Set %s" , 'multiple-post-thumbnails' ), $this->label ), $image_library_url, $this->post_type, $this->id, $url_class, $this->label, $thumbnail_id );
 			$content = sprintf( $set_thumbnail_link, sprintf( esc_html__( "Set %s", 'multiple-post-thumbnails' ), $this->label ) );
-
 
 			if ($thumbnail_id && get_post($thumbnail_id)) {
 				$old_content_width = $content_width;
@@ -359,14 +397,17 @@ if (!class_exists('MultiPostThumbnails')) {
 				else
 					$thumbnail_html = wp_get_attachment_image($thumbnail_id, "{$this->post_type}-{$this->id}-thumbnail");
 				if (!empty($thumbnail_html)) {
-					$ajax_nonce = wp_create_nonce("set_post_thumbnail-{$this->post_type}-{$this->id}-{$post_ID}");
 					$content = sprintf($set_thumbnail_link, $thumbnail_html);
 					$format_string = '<p class="hide-if-no-js"><a href="#" id="remove-%1$s-%2$s-thumbnail" onclick="MultiPostThumbnails.removeThumbnail(\'%2$s\', \'%1$s\', \'%4$s\');return false;">%3$s</a></p>';
 					$content .= sprintf( $format_string, $this->post_type, $this->id, sprintf( esc_html__( "Remove %s", 'multiple-post-thumbnails' ), $this->label ), $ajax_nonce );
 				}
 				$content_width = $old_content_width;
 			}
-
+			
+			if (version_compare($wp_version, '3.5', '>=')) {
+				$content .= sprintf('<script>%s</script>', $modal_js);
+			}
+			
 			return $content;
 		}
 

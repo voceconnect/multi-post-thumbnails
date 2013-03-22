@@ -27,7 +27,7 @@ window.MultiPostThumbnails = {
 
     setAsThumbnail: function(thumb_id, id, post_type, nonce){
 	    var $link = jQuery('a#' + post_type + '-' + id + '-thumbnail-' + thumb_id);
-
+		$link.data('thumbnail_id', thumb_id);
 	    $link.text( setPostThumbnailL10n.saving );
 	    jQuery.post(ajaxurl, {
 		    action:'set-' + post_type + '-' + id + '-thumbnail', post_id: post_id, thumbnail_id: thumb_id, _ajax_nonce: nonce, cookie: encodeURIComponent(document.cookie)
