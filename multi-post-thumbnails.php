@@ -367,31 +367,27 @@ if (!class_exists('MultiPostThumbnails')) {
 			$ajax_nonce = wp_create_nonce("set_post_thumbnail-{$this->post_type}-{$this->id}-{$post_ID}");
 			
 			if (version_compare($wp_version, '3.5', '<')) {
+				// Use the old thickbox for versions prior to 3.5
 				$image_library_url = get_upload_iframe_src('image');
 				// if TB_iframe is not moved to end of query string, thickbox will remove all query args after it.
 				$image_library_url = add_query_arg( array( 'context' => $this->id, 'TB_iframe' => 1 ), remove_query_arg( 'TB_iframe', $image_library_url ) );
 				$url_class = "thickbox";
 			} else {
+				// Use the media modal for 3.5 and up
 				$image_library_url = "#";
-				$js = sprintf(
-					'var %3$s = new MediaModal({
-						$button : jQuery("#set-%1$s-%2$s-thumbnail"),
-						post_id : post_id,
+				$modal_js = sprintf(
+					'var mm_%3$s = new MediaModal({
+						calling_selector : "#set-%1$s-%2$s-thumbnail",
 						cb : function(attachment){
 							MultiPostThumbnails.setAsThumbnail(attachment.id, "%2$s", "%1$s", "%4$s");
 						}
 					});',
 					$this->post_type, $this->id, md5($this->id), $ajax_nonce
 				);
-	
-				echo '<script>';
-				echo $js;
-				echo '</script>';
 			}
-			$format_string = '<p class="hide-if-no-js"><a title="%1$s" href="%2$s" id="set-%3$s-%4$s-thumbnail" class="%5$s" data-uploader_title="%6$s" data-uploader_button_text="%1$s">%%s</a></p>';
-			$set_thumbnail_link = sprintf( $format_string, sprintf( esc_attr__( "Set %s" , 'multiple-post-thumbnails' ), $this->label ), $image_library_url, $this->post_type, $this->id, $url_class, $this->label );
+			$format_string = '<p class="hide-if-no-js"><a title="%1$s" href="%2$s" id="set-%3$s-%4$s-thumbnail" class="%5$s" data-thumbnail_id="%7$s" data-uploader_title="%1$s" data-uploader_button_text="%1$s">%%s</a></p>';
+			$set_thumbnail_link = sprintf( $format_string, sprintf( esc_attr__( "Set %s" , 'multiple-post-thumbnails' ), $this->label ), $image_library_url, $this->post_type, $this->id, $url_class, $this->label, $thumbnail_id );
 			$content = sprintf( $set_thumbnail_link, sprintf( esc_html__( "Set %s", 'multiple-post-thumbnails' ), $this->label ) );
-
 
 			if ($thumbnail_id && get_post($thumbnail_id)) {
 				$old_content_width = $content_width;
@@ -407,7 +403,11 @@ if (!class_exists('MultiPostThumbnails')) {
 				}
 				$content_width = $old_content_width;
 			}
-
+			
+			if (version_compare($wp_version, '3.5', '>=')) {
+				$content .= sprintf('<script>%s</script>', $modal_js);
+			}
+			
 			return $content;
 		}
 

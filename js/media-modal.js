@@ -2,47 +2,50 @@
 var MediaModal = function (options) {
     'use strict';
     this.settings = {
-        $formField: false,
-        $button: jQuery('.upload_image_click'),
+        calling_selector: false,
         cb: function (attachment) {}
     };
     var that = this,
-        file_frame = wp.media.frames.file_frame;
+        frame = wp.media.frames.file_frame;
 
     this.attachEvents = function attachEvents() {
-        this.settings.$button.live('click', this.openFrame);
+        jQuery(this.settings.calling_selector).live('click', this.openFrame);
     };
 
     this.openFrame = function openFrame(e) {
-        e.preventDefault();
+		e.preventDefault();
         
-        // If the media frame already exists, reopen it.
-        if (file_frame) {
-            file_frame.open();
-            return;
+        if (!frame) {
+			// Create the media frame.
+			frame = wp.media.frames.file_frame = wp.media({
+				title: jQuery(this).data('uploader_title'),
+				button: {
+					text: jQuery(this).data('uploader_button_text')
+				},
+				multiple: false
+			});
+			
+			// When an image is selected, run a callback.
+			frame.on('select', function () {
+				// We set multiple to false so only get one image from the uploader
+				var attachment = frame.state().get('selection').first().toJSON();
+				that.settings.cb(attachment);
+			});
+			
+			frame.on('open activate', function() {
+				// Get the link/button/etc that called us
+				var $caller = jQuery(that.settings.calling_selector);
+				
+				// Select the thumbnail if we have one
+				if ($caller.data('thumbnail_id')) {
+					var Attachment = wp.media.model.Attachment;
+					var selection = frame.state().get('selection');
+					selection.add(Attachment.get($caller.data('thumbnail_id')));
+				}
+			});
         }
 		
-        // Create the media frame.
-        file_frame = wp.media.frames.file_frame = wp.media({
-            title: jQuery(this).data('uploader_title'),
-            button: {
-                text: jQuery(this).data('uploader_button_text')
-            },
-            multiple: false
-        });
-
-        // When an image is selected, run a callback.
-        file_frame.on('select', function () {
-            // We set multiple to false so only get one image from the uploader
-            var attachment = file_frame.state().get('selection').first().toJSON();
-			if (that.settings.$formField) {
-				that.settings.$formField.val(attachment.id);
-			}
-            that.settings.cb(attachment);
-        });
-
-        file_frame.open();
-
+        frame.open();
     };
 
     this.init = function init() {
