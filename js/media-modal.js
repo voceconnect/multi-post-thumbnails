@@ -9,7 +9,7 @@ var MediaModal = function (options) {
         frame = wp.media.frames.file_frame;
 
     this.attachEvents = function attachEvents() {
-        jQuery(this.settings.calling_selector).live('click', this.openFrame);
+        jQuery(this.settings.calling_selector).on('click', this.openFrame);
     };
 
     this.openFrame = function openFrame(e) {
