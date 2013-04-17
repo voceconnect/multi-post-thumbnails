@@ -21,10 +21,18 @@ var MediaModal = function (options) {
 			button: {
 				text: jQuery(this).data('uploader_button_text')
 			},
-			multiple: false
+			library : {
+				type : 'image'
+			}
+		});
+		
+		// Set filterable state to uploaded to get select to show (setting this
+		// when creating the frame doesn't work)
+		frame.on('toolbar:create:select', function(){
+			frame.state().set('filterable', 'uploaded');
 		});
 
-		// When an image is selected, run a callback.
+		// When an image is selected, run the callback.
 		frame.on('select', function () {
 			// We set multiple to false so only get one image from the uploader
 			var attachment = frame.state().get('selection').first().toJSON();
