@@ -2,14 +2,14 @@
 var MediaModal = function (options) {
     'use strict';
     this.settings = {
-        calling_selector: false,
-        cb: function (attachment) {}
+      calling_selector: false,
+      cb: function (attachment) {}
     };
     var that = this,
-        frame = wp.media.frames.file_frame;
+      frame = wp.media.frames.file_frame;
 
     this.attachEvents = function attachEvents() {
-        jQuery(this.settings.calling_selector).on('click', this.openFrame);
+      jQuery(this.settings.calling_selector).on('click', this.openFrame);
     };
 
     this.openFrame = function openFrame(e) {
@@ -55,11 +55,10 @@ var MediaModal = function (options) {
     };
 
     this.init = function init() {
-        this.settings = jQuery.extend(this.settings, options);
-        this.attachEvents();
+      this.settings = jQuery.extend(this.settings, options);
+      this.attachEvents();
     };
     this.init();
 
     return this;
-
 };
