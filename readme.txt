@@ -100,7 +100,7 @@ Pancakes.
 == Screenshots ==
 
 1. Admin meta box showing a new thumbnail named 'Secondary Image'.
-2. Media screen showing the link to use the image as the 'Secondary Image'.
+2. Media modal showing images attached to the post and a 'Secondary Image' selected.
 3. Admin meta box with the 'Secondary Image' selected.
 
 == Changelog ==
