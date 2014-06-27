@@ -1,0 +1,15 @@
+{
+    "name": "multi-post-thumbnails",
+    "description": "Multiple Post Thumbnails",
+    "version": "1.6",
+    "repository": {
+        "type": "git",
+        "url": "git@github.com:voceconnect/multi-post-thumbnails.git"
+    },
+    "bugs": {
+        "url": "https://github.com/voceconnect/multi-post-thumbnails/issues"
+    },
+    "devDependencies": {
+      "grunt-voce-plugins": "latest"
+    }
+}
