@@ -1,4 +1,4 @@
-set :application, 'voce-seo'
+set :application, 'multi-post-thumbnails'
 set :repo_url, "git@github.com:voceconnect/#{fetch(:application)}.git"
 
 set :scm, 'git-to-svn'
