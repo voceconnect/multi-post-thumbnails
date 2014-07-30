@@ -2,104 +2,25 @@
 Contributors: chrisscott, voceplatforms
 Tags: thumbnails, image, featured image
 Requires at least: 2.9.2
-Tested up to: 3.9
-Stable tag: 1.6
+Tested up to: 3.9.1
+Stable tag: 1.6.1
+License: GPLv2 or later
+License URI: http://www.gnu.org/licenses/gpl-2.0.html
 
 Adds multiple post thumbnails to a post type. If you've ever wanted more than one Featured Image on a post, this plugin is for you.
 
 == Installation ==
 
-1. Upload the `multi-post-thumbnails` directory to the `/wp-content/plugins/` directory
-2. Activate the plugin through the 'Plugins' menu in WordPress
-3. In your theme's `functions.php` register a new thumbnail for the post type you want it active for. If `post_type` is not set it defaults to `post`.
-
-            if (class_exists('MultiPostThumbnails')) {
-                new MultiPostThumbnails(
-                    array(
-                        'label' => 'Secondary Image',
-                        'id' => 'secondary-image',
-                        'post_type' => 'post'
-                    )
-                );
-            }
-4. Display the thumbnail in your theme. e.g. for loop templates (outside of the loop, the first argument to `MultiPostThumbnails::the_post_thumbnail()` will need to be the post type):
-
-            <?php if (class_exists('MultiPostThumbnails')) : MultiPostThumbnails::the_post_thumbnail(get_post_type(), 'secondary-image'); endif; ?>
-
-For more, read the full documentation: http://voceconnect.github.io/multi-post-thumbnails/
+Please refer to full documentation at https://github.com/voceconnect/multi-post-thumbnails/wiki
 
 == Frequently Asked Questions ==
 
-See the full documentation for more: http://voceconnect.github.io/multi-post-thumbnails/
+If you have any issues with this plugin, please log them at the Github repo for this plugin.
+This is done to centralize our issues and make sure nothing goes unnoticed.
 
-= I'm trying to upgrade to a new versions of WordPress and get an error about `MultiPostThumbnails` =
+The URL to log an issue is https://github.com/voceconnect/multi-post-thumbnails/issues
 
-This is caused by using the example in previous readmes that didn't do a check for the `MultiPostThumbnails` class existing first. This has been corrected in the Installation section.
-
-= How do I register the same thumbnail for multiple post types? =
-
-You can loop through an array of the post types:
-
-            if (class_exists('MultiPostThumbnails')) {
-                $types = array('post', 'page', 'my_post_type');
-                foreach($types as $type) {
-                    new MultiPostThumbnails(array(
-                        'label' => 'Secondary Image',
-                        'id' => 'secondary-image',
-                        'post_type' => $type
-                        )
-                    );
-                }
-            }
-
-= How do I use a custom thumbnail size in my theme? =
-
-After you have registered a new post thumbnail, register a new image size for it. e.g if your post thumbnail `id` is `secondary-image` and it is for a `post`, it probably makes sense to use something like:
-
-        add_image_size('post-secondary-image-thumbnail', 250, 150);
-
-This will register a new image size of 250x150 px. Then, when you display the thumbnail in your theme, update the call to `MultiPostThumbnails::the_post_thumbnail()` to pass in the image size:
-
-        MultiPostThumbnails::the_post_thumbnail(get_post_type(), 'secondary-image', NULL,  'post-secondary-image-thumbnail');
-
-You can register multiple image sizes for a given thumbnail if desired.
-
-= How can I get the thumbnail without automatically echoing it? =
-
-Use `MultiPostThumbnails::get_the_post_thumbnail()` in place of `MultiPostThumbnails::the_post_thumbnail()`.
-
-= How do I get just the URL of a thumbnail without the wrapping HTML? =
-
-Use `MultiPostThumbnails::get_post_thumbnail_url()` passing in the following arguments:
-
-* `$post_type` - the post type the thumbnail was registered for
-* `$id` - the ID used to register the thumbnail (not the post ID)
-* `$post_id` - optional and only needs to be passed in when outside the loop but should be passed in if available when called
-
-For example, for a thumbnail registered with an `id` of `secondary-image` and `post_type` of `post` the following would retrieve the thumbnail URL:
-
-        MultiPostThumbnails::get_post_thumbnail_url(get_post_type(), 'secondary-image');
-
-= When I use the sample code the thumbnail doesn't show up. What's wrong? =
-
-* Make sure you are using the same ID you registered the thumbnail with as the second argument to `MultiPostThumbnails::the_post_thumbnail()`.
-* If you are trying to get the thumbnail outside of the loop or a single template, you will need to replace `get_post_type()` with the post type you are trying to get the thumbnail for. This is common when trying to use the code in headers/footers/sidebars.
-
-= I see the meta box in the admin when editing a post but when I click on 'Set as [label] image' in the media manager, nothing happens and I get a JavaScript console error =
-
-If you are using a symlink to include the plugin directory in your project, the admin js file will not load and cause this. Unfortunately, the solution is to not use symlinks due to the behavior of PHP's `__FILE__`
-
-= Is there a way to show the post meta where the thumbnail IDs are stored in the Custom Fields metabox?
-
-Since version 1.5 these are hidden by default. To unhide them, add `add_filter('mpt_unprotect_meta', '__return_true');` to your theme's `functions.php`
-
-= Is there a github repo? I love me some submodules! =
-
-Yes. https://github.com/voceconnect/multi-post-thumbnails
-
-= Pancakes or waffles? =
-
-Pancakes.
+See Frequently Asked Questions at https://github.com/voceconnect/multi-post-thumbnails/wiki/Frequently-Asked-Questions
 
 == Screenshots ==
 
@@ -109,21 +30,9 @@ Pancakes.
 
 == Changelog ==
 
-= 1.6 =
+After version 1.3, releases were tracked in github: https://github.com/voceconnect/multi-post-thumbnails/releases
 
-* Use medial modal instead of thickbox for WordPress 3.5+ (props mparolisi).
-* Fix getting plugin directory name for il8n (props pixeltechnologies).
-
-= 1.5 =
-
-* Add a `size` parameter to `MultiPostThumbnails::get_post_thumbnail_url` to allow getting any registered size.
-* Add `context` option to the args accepted when instantiating a new `MultiPostThumbnails` to specify the metabox context. Defaults to `side` (which it was previously hard coded to).
-* Filter `is_protected_meta` to hide meta from the Custom Fields metabox by default (props willroy). To unhide them, add `add_filter('mpt_unprotect_meta', '__return_true');` to your theme's `functions.php`.
-* il8n courtesy Horttcore
-
-= 1.4 =
-
-* Add a context parameter to the thickbox opener to narrow down the selection in the media upload tabs to the one being set/viewed (props kevinlangleyjr) which reduces clutter when many thumbnails are registered. Refactor js to use an object (props markparolisi). Hide attachment fields on 3.5 media sidebar.
+Historical releases are below:
 
 = 1.3 =
 
