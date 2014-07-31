@@ -29,6 +29,9 @@ if (!class_exists('MultiPostThumbnails')) {
 
 	class MultiPostThumbnails {
 
+		/**
+		 * @codeCoverageIgnore
+		 */
 		public function __construct($args = array()) {
 			$this->register($args);
 		}
