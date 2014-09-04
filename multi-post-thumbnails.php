@@ -410,7 +410,7 @@ if (!class_exists('MultiPostThumbnails')) {
 				$content .= sprintf('<script>%s</script>', $modal_js);
 			}
 			
-			return $content;
+			return apply_filters( 'mpt_admin_post_thumbnail_html', $content, $post_ID, $thumbnail_id, $this->post_type, $this->id );
 		}
 
 		/**
