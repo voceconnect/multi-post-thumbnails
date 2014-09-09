@@ -36,6 +36,10 @@ if (!class_exists('MultiPostThumbnails')) {
 		protected $priority;
 		protected $context;
 
+
+		/**
+		 * @codeCoverageIgnore
+		 */
 		public function __construct($args = array()) {
 			$this->register($args);
 		}
@@ -229,7 +233,7 @@ if (!class_exists('MultiPostThumbnails')) {
 		 * @return boolean 
 		 */
 		public function filter_is_protected_meta($protected, $meta_key) {
-			if (apply_filters('mpt_unprotect_meta', false)) {
+			if ($this->apply_filters('mpt_unprotect_meta', false)) {
 				return $protected;
 			}
 			
@@ -246,6 +250,8 @@ if (!class_exists('MultiPostThumbnails')) {
 		 * @param string $relative_path Relative file path to the plugin file to get the URL of
 		 * @param string $plugin_path Absolute file path to the plugin base directory
 		 * @return string the URL of the plugin file
+		 *
+		 * @codeCoverageIgnore internal method
 		 */
 		private function plugins_url($relative_path, $plugin_path) {
 			$template_dir = get_template_directory();
@@ -355,7 +361,9 @@ if (!class_exists('MultiPostThumbnails')) {
 		 */
 		public static function get_post_thumbnail_url($post_type, $id, $post_id = 0, $size = null) {
 			if (!$post_id) {
+
 				$post_id = get_the_ID();
+
 			}
 
 			$post_thumbnail_id = self::get_post_thumbnail_id($post_type, $id, $post_id);
@@ -378,12 +386,14 @@ if (!class_exists('MultiPostThumbnails')) {
 		 *
 		 * @param string $thumbnail_id The thumbnail's post ID.
 		 * @return string HTML
+		 *
+		 * @codeCoverageIgnore since this can't be accessed externally (protected)
 		 */
 		protected function post_thumbnail_html($thumbnail_id = null) {
 			global $content_width, $_wp_additional_image_sizes, $post_ID, $wp_version;
 			
 			$url_class = "";
-			$ajax_nonce = wp_create_nonce("set_post_thumbnail-{$this->post_type}-{$this->id}-{$post_ID}");
+			$ajax_nonce = $this->wp_create_nonce("set_post_thumbnail-{$this->post_type}-{$this->id}-{$post_ID}");
 			
 			if ($this->version_compare($wp_version, '3.5', '<')) {
 				// Use the old thickbox for versions prior to 3.5
@@ -434,30 +444,31 @@ if (!class_exists('MultiPostThumbnails')) {
 		 * Set/remove the post thumbnail. AJAX handler.
 		 *
 		 * @return string Updated post thumbnail HTML.
+		 *
 		 */
 		public function set_thumbnail() {
 			global $post_ID; // have to do this so get_upload_iframe_src() can grab it
 			$post_ID = intval($_POST['post_id']);
 			if ( !current_user_can('edit_post', $post_ID))
-				die('-1');
+				return $this->mpt_die('-1');
 			$thumbnail_id = intval($_POST['thumbnail_id']);
 
-			check_ajax_referer("set_post_thumbnail-{$this->post_type}-{$this->id}-{$post_ID}");
+			$this->check_ajax_referer("set_post_thumbnail-{$this->post_type}-{$this->id}-{$post_ID}");
 
 			if ($thumbnail_id == '-1') {
 				delete_post_meta($post_ID, $this->get_meta_key());
-				die($this->post_thumbnail_html(null));
+				return $this->mpt_die($this->post_thumbnail_html(null));
 			}
 
 			if ($thumbnail_id && get_post($thumbnail_id)) {
-				$thumbnail_html = wp_get_attachment_image($thumbnail_id, 'thumbnail');
+				$thumbnail_html = $this->wp_get_attachment_image($thumbnail_id, 'thumbnail');
 				if (!empty($thumbnail_html)) {
-					$this->set_meta($post_ID, $this->post_type, $this->id, $thumbnail_id);
-					die($this->post_thumbnail_html($thumbnail_id));
+					self::set_meta($post_ID, $this->post_type, $this->id, $thumbnail_id);
+					return $this->mpt_die($this->post_thumbnail_html($thumbnail_id));
 				}
 			}
 
-			die('0');
+			return $this->mpt_die('0');
 		}
 		
 		/**
@@ -571,6 +582,14 @@ if (!class_exists('MultiPostThumbnails')) {
 
 		}
 
+		/**
+		 * Helper method to assist mocking/testing of a global function
+		 *
+		 * @param $status
+		 *
+		 * @return mixed
+		 * @codeCoverageIgnore
+		 */
 		public function wp_create_nonce( $action ){
 
 			return wp_create_nonce( $action );
@@ -591,6 +610,67 @@ if (!class_exists('MultiPostThumbnails')) {
 		public function get_post( $post = null, $output = OBJECT, $filter = 'raw' ){
 
 			return get_post( $post, $output, $filter );
+
+		}
+
+		/**
+		 * Helper method to assist mocking/testing of a global function
+		 *
+		 * @param $tag
+		 * @param $value
+		 *
+		 * @return mixed|void
+		 *
+		 * @codeCoverageIgnore
+		 */
+		public function apply_filters( $tag, $value ){
+
+			return apply_filters( $tag, $value );
+
+		}
+
+		/**
+		 * Helper method to assist mocking/testing of a global function
+		 *
+		 * @param      $action
+		 * @param bool $query_arg
+		 * @param bool $die
+		 *
+		 * @return bool
+		 * @codeCoverageIgnore
+		 */
+		public function check_ajax_referer( $action = -1, $query_arg = false, $die = true ){
+
+			return check_ajax_referer( $action, $query_arg, $die );
+
+		}
+
+		/**
+		 * Helper method to assist mocking/testing of a global function (die, which is a keyword)
+		 *
+		 * @param $status
+		 *
+		 * @return mixed
+		 * @codeCoverageIgnore
+		 */
+		public function mpt_die( $status ){
+			if ( ! defined('WP_TEST_ENVIRONMENT') || WP_TEST_ENVIRONMENT === false ){
+				die( $status );
+			}
+			return $status;
+		}
+
+		/**
+		 * Helper method to assist mocking/testing of a global function
+		 *
+		 * @param $status
+		 *
+		 * @return mixed
+		 * @codeCoverageIgnore
+		 */
+		public function wp_get_attachment_image($attachment_id, $size = 'thumbnail', $icon = false, $attr = ''){
+
+			return wp_get_attachment_image($attachment_id, $size = 'thumbnail', $icon = false, $attr = '');
 
 		}
 
