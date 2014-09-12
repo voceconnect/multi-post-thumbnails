@@ -29,6 +29,17 @@ if (!class_exists('MultiPostThumbnails')) {
 
 	class MultiPostThumbnails {
 
+		protected $args;
+		public $label;
+		public $id;
+		protected $post_type;
+		protected $priority;
+		protected $context;
+
+
+		/**
+		 * @codeCoverageIgnore
+		 */
 		public function __construct($args = array()) {
 			$this->register($args);
 		}
@@ -54,8 +65,9 @@ if (!class_exists('MultiPostThumbnails')) {
 		 * @return void
 		 */
 		public function register($args = array()) {
+
 			global $wp_version;
-			
+
 			$defaults = array(
 				'label' => null,
 				'id' => null,
@@ -64,28 +76,31 @@ if (!class_exists('MultiPostThumbnails')) {
 				'context' => 'side',
 			);
 
-			$args = wp_parse_args($args, $defaults);
+			$this->args = wp_parse_args($args, $defaults);
 
 			// Create and set properties
-			foreach($args as $k => $v) {
+
+			foreach( $this->args as $k => $v ) {
 				$this->$k = $v;
 			}
 
+
+
 			// Need these args to be set at a minimum
 			if (null === $this->label || null === $this->id) {
-				if (WP_DEBUG) {
-					trigger_error(sprintf(__("The 'label' and 'id' values of the 'args' parameter of '%s::%s()' are required", 'multiple-post-thumbnails'), __CLASS__, __FUNCTION__));
+				if ( WP_DEBUG  ) {
+					$this->trigger_error(sprintf(__("The 'label' and 'id' values of the 'args' parameter of '%s::%s()' are required", 'multiple-post-thumbnails'), __CLASS__, __FUNCTION__));
 				}
 				return;
 			}
 
 			// add theme support if not already added
-			if (!current_theme_supports('post-thumbnails')) {
-				add_theme_support( 'post-thumbnails' );
+			if ( ! $this->current_theme_supports('post-thumbnails')) {
+				$this->add_theme_support( 'post-thumbnails' );
 			}
 
 			add_action('add_meta_boxes', array($this, 'add_metabox'));
-			if (version_compare($wp_version, '3.5', '<')) {				
+			if ( $this->version_compare($wp_version, '3.5', '<')) {
 				add_filter('attachment_fields_to_edit', array($this, 'add_attachment_field'), 20, 2);
 			}
 			add_action('admin_enqueue_scripts', array($this, 'enqueue_admin_scripts'));
@@ -94,8 +109,9 @@ if (!class_exists('MultiPostThumbnails')) {
 			add_action("wp_ajax_set-{$this->post_type}-{$this->id}-thumbnail", array($this, 'set_thumbnail'));
 			add_action('delete_attachment', array($this, 'action_delete_attachment'));
 			add_filter('is_protected_meta', array($this, 'filter_is_protected_meta'), 20, 2);
+
 		}
-		
+
 		/**
 		 * get the meta key used to store a post's thumbnail
 		 * 
@@ -121,9 +137,10 @@ if (!class_exists('MultiPostThumbnails')) {
 		 */
 		public function thumbnail_meta_box() {
 			global $post;
-			
-			$thumbnail_id = get_post_meta($post->ID, $this->get_meta_key(), true);
-			echo $this->post_thumbnail_html($thumbnail_id);	
+
+			$thumbnail_id = $this->get_post_meta($post->ID, $this->get_meta_key(), true);
+			echo $this->post_thumbnail_html($thumbnail_id);
+
 		}
 
 		/**
@@ -134,6 +151,7 @@ if (!class_exists('MultiPostThumbnails')) {
 		 * @return void
 		 */
 		public function add_attachment_field($form_fields, $post) {
+
 			$calling_post_id = 0;
 			if (isset($_GET['post_id']))
 				$calling_post_id = absint($_GET['post_id']);
@@ -144,18 +162,19 @@ if (!class_exists('MultiPostThumbnails')) {
 				return $form_fields;
 
 			// check the post type to see if link needs to be added
-			$calling_post = get_post($calling_post_id);
+			$calling_post = $this->get_post($calling_post_id);
+
 			if (is_null($calling_post) || $calling_post->post_type != $this->post_type) {
 				return $form_fields;
 			}
 
 			$referer = wp_get_referer();
-			$query_vars = wp_parse_args(parse_url($referer, PHP_URL_QUERY));
-			
+			$query_vars = $this->wp_parse_args(parse_url($referer, PHP_URL_QUERY));
+
 			if( (isset($_REQUEST['context']) && $_REQUEST['context'] != $this->id) || (isset($query_vars['context']) && $query_vars['context'] != $this->id) )
 				return $form_fields;
 
-			$ajax_nonce = wp_create_nonce("set_post_thumbnail-{$this->post_type}-{$this->id}-{$calling_post_id}");
+			$ajax_nonce = $this->wp_create_nonce("set_post_thumbnail-{$this->post_type}-{$this->id}-{$calling_post_id}");
 			$link = sprintf('<a id="%4$s-%1$s-thumbnail-%2$s" class="%1$s-thumbnail" href="#" onclick="MultiPostThumbnails.setAsThumbnail(\'%2$s\', \'%1$s\', \'%4$s\', \'%5$s\');return false;">' . __( 'Set as %3$s', 'multiple-post-thumbnails' ) . '</a>', $this->id, $post->ID, $this->label, $this->post_type, $ajax_nonce);
 			$form_fields["{$this->post_type}-{$this->id}-thumbnail"] = array(
 				'label' => $this->label,
@@ -167,6 +186,8 @@ if (!class_exists('MultiPostThumbnails')) {
 		/**
 		 * Enqueue admin JavaScripts
 		 *
+		 * @param $hook
+		 *
 		 * @return void
 		 */
 		public function enqueue_admin_scripts( $hook ) {
@@ -176,7 +197,7 @@ if (!class_exists('MultiPostThumbnails')) {
 			if ( ! in_array( $hook, array( 'post-new.php', 'post.php', 'media-upload-popup' ) ) )
 				return;
 
-			if (version_compare($wp_version, '3.5', '<')) {	
+			if ($this->version_compare($wp_version, '3.5', '<')) {
 				add_thickbox();
 				wp_enqueue_script( "mpt-featured-image", $this->plugins_url( 'js/multi-post-thumbnails-admin.js', __FILE__ ), array( 'jquery', 'media-upload' ) );
 			} else { // 3.5+ media modal
@@ -212,7 +233,7 @@ if (!class_exists('MultiPostThumbnails')) {
 		 * @return boolean 
 		 */
 		public function filter_is_protected_meta($protected, $meta_key) {
-			if (apply_filters('mpt_unprotect_meta', false)) {
+			if ($this->apply_filters('mpt_unprotect_meta', false)) {
 				return $protected;
 			}
 			
@@ -229,6 +250,8 @@ if (!class_exists('MultiPostThumbnails')) {
 		 * @param string $relative_path Relative file path to the plugin file to get the URL of
 		 * @param string $plugin_path Absolute file path to the plugin base directory
 		 * @return string the URL of the plugin file
+		 *
+		 * @codeCoverageIgnore internal method
 		 */
 		private function plugins_url($relative_path, $plugin_path) {
 			$template_dir = get_template_directory();
@@ -338,7 +361,9 @@ if (!class_exists('MultiPostThumbnails')) {
 		 */
 		public static function get_post_thumbnail_url($post_type, $id, $post_id = 0, $size = null) {
 			if (!$post_id) {
+
 				$post_id = get_the_ID();
+
 			}
 
 			$post_thumbnail_id = self::get_post_thumbnail_id($post_type, $id, $post_id);
@@ -361,14 +386,16 @@ if (!class_exists('MultiPostThumbnails')) {
 		 *
 		 * @param string $thumbnail_id The thumbnail's post ID.
 		 * @return string HTML
+		 *
+		 * @codeCoverageIgnore since this can't be accessed externally (protected)
 		 */
-		private function post_thumbnail_html($thumbnail_id = null) {
+		protected function post_thumbnail_html($thumbnail_id = null) {
 			global $content_width, $_wp_additional_image_sizes, $post_ID, $wp_version;
 			
 			$url_class = "";
-			$ajax_nonce = wp_create_nonce("set_post_thumbnail-{$this->post_type}-{$this->id}-{$post_ID}");
+			$ajax_nonce = $this->wp_create_nonce("set_post_thumbnail-{$this->post_type}-{$this->id}-{$post_ID}");
 			
-			if (version_compare($wp_version, '3.5', '<')) {
+			if ($this->version_compare($wp_version, '3.5', '<')) {
 				// Use the old thickbox for versions prior to 3.5
 				$image_library_url = get_upload_iframe_src('image');
 				// if TB_iframe is not moved to end of query string, thickbox will remove all query args after it.
@@ -406,7 +433,7 @@ if (!class_exists('MultiPostThumbnails')) {
 				$content_width = $old_content_width;
 			}
 			
-			if (version_compare($wp_version, '3.5', '>=')) {
+			if ($this->version_compare($wp_version, '3.5', '>=')) {
 				$content .= sprintf('<script>%s</script>', $modal_js);
 			}
 			
@@ -417,30 +444,31 @@ if (!class_exists('MultiPostThumbnails')) {
 		 * Set/remove the post thumbnail. AJAX handler.
 		 *
 		 * @return string Updated post thumbnail HTML.
+		 *
 		 */
 		public function set_thumbnail() {
 			global $post_ID; // have to do this so get_upload_iframe_src() can grab it
 			$post_ID = intval($_POST['post_id']);
 			if ( !current_user_can('edit_post', $post_ID))
-				die('-1');
+				return $this->mpt_die('-1');
 			$thumbnail_id = intval($_POST['thumbnail_id']);
 
-			check_ajax_referer("set_post_thumbnail-{$this->post_type}-{$this->id}-{$post_ID}");
+			$this->check_ajax_referer("set_post_thumbnail-{$this->post_type}-{$this->id}-{$post_ID}");
 
 			if ($thumbnail_id == '-1') {
 				delete_post_meta($post_ID, $this->get_meta_key());
-				die($this->post_thumbnail_html(null));
+				return $this->mpt_die($this->post_thumbnail_html(null));
 			}
 
 			if ($thumbnail_id && get_post($thumbnail_id)) {
-				$thumbnail_html = wp_get_attachment_image($thumbnail_id, 'thumbnail');
+				$thumbnail_html = $this->wp_get_attachment_image($thumbnail_id, 'thumbnail');
 				if (!empty($thumbnail_html)) {
-					$this->set_meta($post_ID, $this->post_type, $this->id, $thumbnail_id);
-					die($this->post_thumbnail_html($thumbnail_id));
+					self::set_meta($post_ID, $this->post_type, $this->id, $thumbnail_id);
+					return $this->mpt_die($this->post_thumbnail_html($thumbnail_id));
 				}
 			}
 
-			die('0');
+			return $this->mpt_die('0');
 		}
 		
 		/**
@@ -455,6 +483,200 @@ if (!class_exists('MultiPostThumbnails')) {
 		public static function set_meta($post_ID, $post_type, $thumbnail_id, $thumbnail_post_id) {
 			return update_post_meta($post_ID, "{$post_type}_{$thumbnail_id}_thumbnail_id", $thumbnail_post_id);
 		}
+
+
+		/**
+		 * Helper method to assist testing of a global function
+		 * @param     $error_msg
+		 * @param int $error_type
+		 *
+		 * @return bool
+		 *
+		 * @codeCoverageIgnore
+		 */
+		function trigger_error( $error_msg, $error_type = E_USER_NOTICE ){
+
+			if ( ! defined('WP_TEST_ENVIRONMENT') || WP_TEST_ENVIRONMENT === false ){
+
+				return trigger_error( $error_msg, $error_type );
+
+			}
+
+		}
+
+		/**
+		 * Helper method to assist mocking/testing of a global function
+		 * @param $feature
+		 *
+		 * @return bool
+		 *
+		 * @codeCoverageIgnore
+		 */
+		function add_theme_support( $feature ) {
+
+			return add_theme_support( $feature );
+
+		}
+
+		/**
+		 * Helper method to assist mocking/testing of a global function
+		 * @param $feature
+		 *
+		 * @return bool
+		 *
+		 * @codeCoverageIgnore
+		 */
+		function current_theme_supports( $feature ) {
+
+			return current_theme_supports( $feature );
+
+		}
+
+		/**
+		 * Helper method to assist mocking/testing of a global function
+		 * @param      $version1
+		 * @param      $version2
+		 * @param null $operator
+		 *
+		 * @return mixed
+		 *
+		 * @codeCoverageIgnorep
+		 */
+		public function version_compare ( $version1, $version2, $operator = null ) {
+
+			return version_compare( $version1, $version2, $operator );
+
+		}
+
+
+		/**
+		 * Helper method to assist mocking/testing of a global function
+		 * @param        $post_id
+		 * @param string $key
+		 * @param bool   $single
+		 *
+		 * @return mixed
+		 *
+		 * @codeCoverageIgnore
+		 */
+		public function get_post_meta( $post_id, $key = '', $single = false ) {
+
+			return get_post_meta( $post_id, $key, $single );
+
+		}
+
+
+		/**
+		 * Helper method to assist mocking/testing of a global function
+		 *
+		 * @param        $args
+		 * @param string $defaults
+		 *
+		 * @return array
+		 *
+		 * @codeCoverageIgnore
+		 */
+		public function wp_parse_args( $args, $defaults = '' ){
+
+			return wp_parse_args( $args, $defaults );
+
+		}
+
+		/**
+		 * Helper method to assist mocking/testing of a global function
+		 *
+		 * @param $action
+		 *
+		 * @return string
+		 * @codeCoverageIgnore
+		 */
+		public function wp_create_nonce( $action ){
+
+			return wp_create_nonce( $action );
+
+		}
+
+		/**
+		 * Helper method to assist mocking/testing of a global function
+		 *
+		 * @param null   $post
+		 * @param string $output
+		 * @param string $filter
+		 *
+		 * @return null|WP_Post
+		 *
+		 * @codeCoverageIgnore
+		 */
+		public function get_post( $post = null, $output = OBJECT, $filter = 'raw' ){
+
+			return get_post( $post, $output, $filter );
+
+		}
+
+		/**
+		 * Helper method to assist mocking/testing of a global function
+		 *
+		 * @param $tag
+		 * @param $value
+		 *
+		 * @return mixed|void
+		 *
+		 * @codeCoverageIgnore
+		 */
+		public function apply_filters( $tag, $value ){
+
+			return apply_filters( $tag, $value );
+
+		}
+
+		/**
+		 * Helper method to assist mocking/testing of a global function
+		 *
+		 * @param      $action
+		 * @param bool $query_arg
+		 * @param bool $die
+		 *
+		 * @return bool
+		 * @codeCoverageIgnore
+		 */
+		public function check_ajax_referer( $action = -1, $query_arg = false, $die = true ){
+
+			return check_ajax_referer( $action, $query_arg, $die );
+
+		}
+
+		/**
+		 * Helper method to assist mocking/testing of a global function (die, which is a keyword)
+		 *
+		 * @param $status
+		 *
+		 * @return mixed
+		 * @codeCoverageIgnore
+		 */
+		public function mpt_die( $status ){
+			if ( ! defined('WP_TEST_ENVIRONMENT') || WP_TEST_ENVIRONMENT === false ){
+				die( $status );
+			}
+			return $status;
+		}
+
+		/**
+		 * Helper method to assist mocking/testing of a global function
+		 *
+		 * @param        $attachment_id
+		 * @param string $size
+		 * @param bool   $icon
+		 * @param string $attr
+		 *
+		 * @return string
+		 * @codeCoverageIgnore
+		 */
+		public function wp_get_attachment_image($attachment_id, $size = 'thumbnail', $icon = false, $attr = ''){
+
+			return wp_get_attachment_image($attachment_id, $size = 'thumbnail', $icon = false, $attr = '');
+
+		}
+
 
 	}
 
