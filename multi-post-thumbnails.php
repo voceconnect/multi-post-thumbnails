@@ -585,9 +585,9 @@ if (!class_exists('MultiPostThumbnails')) {
 		/**
 		 * Helper method to assist mocking/testing of a global function
 		 *
-		 * @param $status
+		 * @param $action
 		 *
-		 * @return mixed
+		 * @return string
 		 * @codeCoverageIgnore
 		 */
 		public function wp_create_nonce( $action ){
@@ -663,9 +663,12 @@ if (!class_exists('MultiPostThumbnails')) {
 		/**
 		 * Helper method to assist mocking/testing of a global function
 		 *
-		 * @param $status
+		 * @param        $attachment_id
+		 * @param string $size
+		 * @param bool   $icon
+		 * @param string $attr
 		 *
-		 * @return mixed
+		 * @return string
 		 * @codeCoverageIgnore
 		 */
 		public function wp_get_attachment_image($attachment_id, $size = 'thumbnail', $icon = false, $attr = ''){
