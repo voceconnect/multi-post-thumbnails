@@ -489,10 +489,7 @@ class TestMultiPostThumbnails extends WP_UnitTestCase {
 	 */
 	function test_has_post_thumbnail_no_post_id() {
 
-		$post          = $this->factory->post->create_and_get();
-		$_POST['post'] = $post;
-		$_GLOBALS['post'] = $post;
-		$actual = MultiPostThumbnails::has_post_thumbnail( 'post', 'foz' );
+		$actual = MultiPostThumbnails::has_post_thumbnail( 'post', 'foz', false );
 		$this->assertFalse( $actual );
 
 	}
