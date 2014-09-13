@@ -69,7 +69,7 @@ class TestMultiPostThumbnails extends WP_UnitTestCase {
 
 		$mpt = $this->getMockBuilder( 'MultiPostThumbnails' )
 			->disableOriginalConstructor()
-			->setMethods( array( 'version_compare', 'current_theme_supports', 'trigger_error', 'add_theme_support' ) )
+			->setMethods( array( 'version_compare', 'current_theme_supports', 'add_theme_support' ) )
 			->getMock();
 
 		$mpt->expects( $this->exactly( $current_theme_supports_expects ) )
@@ -84,15 +84,15 @@ class TestMultiPostThumbnails extends WP_UnitTestCase {
 			->method( 'version_compare' )
 			->will( $this->returnValue( $version_compare ) );
 
+		$mpt->register( array( 'label' => $label, 'id' => $id ) );
+
 		if ( ! $id || ! $label ) {
 
-			$mpt->expects( $this->once() )
-				->method( 'trigger_error' );
+			$expected_error_msg = $mpt->get_register_required_field_error_message();
+
+			$this->assertError( $expected_error_msg );
 
 		}
-
-
-		$mpt->register( array( 'label' => $label, 'id' => $id ) );
 
 		if ( $assertFilters ) {
 

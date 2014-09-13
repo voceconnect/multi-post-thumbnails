@@ -79,17 +79,15 @@ if (!class_exists('MultiPostThumbnails')) {
 			$this->args = wp_parse_args($args, $defaults);
 
 			// Create and set properties
-
 			foreach( $this->args as $k => $v ) {
 				$this->$k = $v;
 			}
 
-
-
 			// Need these args to be set at a minimum
 			if (null === $this->label || null === $this->id) {
-				if ( WP_DEBUG  ) {
-					$this->trigger_error(sprintf(__("The 'label' and 'id' values of the 'args' parameter of '%s::%s()' are required", 'multiple-post-thumbnails'), __CLASS__, __FUNCTION__));
+				if ( WP_DEBUG ) {
+					$error_message = $this->get_register_required_field_error_message();
+					trigger_error( $error_message );
 				}
 				return;
 			}
@@ -109,6 +107,14 @@ if (!class_exists('MultiPostThumbnails')) {
 			add_action("wp_ajax_set-{$this->post_type}-{$this->id}-thumbnail", array($this, 'set_thumbnail'));
 			add_action('delete_attachment', array($this, 'action_delete_attachment'));
 			add_filter('is_protected_meta', array($this, 'filter_is_protected_meta'), 20, 2);
+
+		}
+
+		public function get_register_required_field_error_message() {
+
+			$error_format = __( "The 'label' and 'id' values of the 'args' parameter of '%s::%s()' are required", 'multiple-post-thumbnails' );
+
+			return sprintf( $error_format, __CLASS__, __FUNCTION__ );
 
 		}
 
@@ -482,26 +488,6 @@ if (!class_exists('MultiPostThumbnails')) {
 		 */
 		public static function set_meta($post_ID, $post_type, $thumbnail_id, $thumbnail_post_id) {
 			return update_post_meta($post_ID, "{$post_type}_{$thumbnail_id}_thumbnail_id", $thumbnail_post_id);
-		}
-
-
-		/**
-		 * Helper method to assist testing of a global function
-		 * @param     $error_msg
-		 * @param int $error_type
-		 *
-		 * @return bool
-		 *
-		 * @codeCoverageIgnore
-		 */
-		function trigger_error( $error_msg, $error_type = E_USER_NOTICE ){
-
-			if ( ! defined('WP_TEST_ENVIRONMENT') || WP_TEST_ENVIRONMENT === false ){
-
-				return trigger_error( $error_msg, $error_type );
-
-			}
-
 		}
 
 		/**
