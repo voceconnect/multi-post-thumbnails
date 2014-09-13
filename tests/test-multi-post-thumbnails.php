@@ -3,6 +3,48 @@
 
 class TestMultiPostThumbnails extends WP_UnitTestCase {
 
+	private $errors;
+
+	public function setUp() {
+
+		parent::setUp();
+
+		$this->errors = array();
+
+		set_error_handler( array( $this, 'errorHandler' ) );
+
+	}
+
+	public function errorHandler( $errno, $errstr, $errfile, $errline, $errcontext ) {
+
+		$this->errors[] = compact(
+			'errno',
+			'errstr',
+			'errfile',
+			'errline',
+			'errcontext'
+		);
+
+	}
+
+	public function assertError( $errstr, $errno ) {
+
+		foreach ( $this->errors as $error ) {
+
+			if ( ( $errstr === $error['errstr'] ) && ( $errno === $error['errno'] ) ) {
+
+				return;
+
+			}
+
+		}
+
+		$fail_message = sprintf( 'Error with level %s and message "%s" not found in %s', $errno, $errstr, var_export( $this->errors, true ) );
+
+		$this->fail( $fail_message );
+
+	}
+
 	function provider_test_register() {
 
 		return array(
