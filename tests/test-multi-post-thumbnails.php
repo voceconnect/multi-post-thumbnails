@@ -27,7 +27,7 @@ class TestMultiPostThumbnails extends WP_UnitTestCase {
 
 	}
 
-	public function assertError( $errstr, $errno ) {
+	public function assertError( $errstr, $errno = E_USER_NOTICE ) {
 
 		foreach ( $this->errors as $error ) {
 
