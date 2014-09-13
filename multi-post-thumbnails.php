@@ -158,7 +158,7 @@ if (!class_exists('MultiPostThumbnails')) {
 		public function thumbnail_meta_box() {
 			global $post;
 
-			$thumbnail_id = $this->get_post_meta($post->ID, $this->get_meta_key(), true);
+			$thumbnail_id = get_post_meta($post->ID, $this->get_meta_key(), true);
 			echo $this->post_thumbnail_html($thumbnail_id);
 
 		}
