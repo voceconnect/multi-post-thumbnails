@@ -29,13 +29,11 @@ if (!class_exists('MultiPostThumbnails')) {
 
 	class MultiPostThumbnails {
 
-		protected $args;
-		public $label;
-		public $id;
+		public    $label;
+		public    $id;
 		protected $post_type;
 		protected $priority;
 		protected $context;
-
 
 		/**
 		 * @codeCoverageIgnore
@@ -64,35 +62,50 @@ if (!class_exists('MultiPostThumbnails')) {
 		 * @param array|string $args See above description.
 		 * @return void
 		 */
-		public function register($args = array()) {
+		public function register( $args = array() ) {
 
-			$defaults = array(
-				'label' => null,
-				'id' => null,
-				'post_type' => 'post',
-				'priority' => 'low',
-				'context' => 'side',
-			);
+			$this->parse_arguments( $args );
 
-			$this->args = wp_parse_args($args, $defaults);
+			// "label" and "id" are required
+			if ( is_null( $this->label ) || is_null( $this->id ) ) {
 
-			// Create and set properties
-			foreach( $this->args as $k => $v ) {
-				$this->$k = $v;
-			}
-
-			// Need these args to be set at a minimum
-			if (null === $this->label || null === $this->id) {
 				if ( WP_DEBUG ) {
+
 					$error_message = $this->get_register_required_field_error_message();
+
 					trigger_error( $error_message );
+
 				}
+
 				return;
+
 			}
 
 			$this->add_theme_support();
 
 			$this->attach_hooks();
+
+		}
+
+		public function parse_arguments( $args ) {
+
+			$defaults = array(
+				'label'     => null,
+				'id'        => null,
+				'post_type' => 'post',
+				'priority'  => 'low',
+				'context'   => 'side',
+			);
+
+			$args = wp_parse_args( $args, $defaults );
+
+			$args = array_intersect_key( $args, $defaults );
+
+			foreach ( $args as $k => $v ) {
+
+				$this->$k = $v;
+
+			}
 
 		}
 
