@@ -66,8 +66,6 @@ if (!class_exists('MultiPostThumbnails')) {
 		 */
 		public function register($args = array()) {
 
-			global $wp_version;
-
 			$defaults = array(
 				'label' => null,
 				'id' => null,
@@ -111,8 +109,10 @@ if (!class_exists('MultiPostThumbnails')) {
 
 		public function attach_hooks() {
 
+			global $wp_version;
+
 			add_action('add_meta_boxes', array($this, 'add_metabox'));
-			if ( $this->version_compare($wp_version, '3.5', '<')) {
+			if ( version_compare( $wp_version, '3.5', '<' ) ) {
 				add_filter('attachment_fields_to_edit', array($this, 'add_attachment_field'), 20, 2);
 			}
 			add_action('admin_enqueue_scripts', array($this, 'enqueue_admin_scripts'));
@@ -182,19 +182,19 @@ if (!class_exists('MultiPostThumbnails')) {
 				return $form_fields;
 
 			// check the post type to see if link needs to be added
-			$calling_post = $this->get_post($calling_post_id);
+			$calling_post = get_post($calling_post_id);
 
 			if (is_null($calling_post) || $calling_post->post_type != $this->post_type) {
 				return $form_fields;
 			}
 
 			$referer = wp_get_referer();
-			$query_vars = $this->wp_parse_args(parse_url($referer, PHP_URL_QUERY));
+			$query_vars = wp_parse_args(parse_url($referer, PHP_URL_QUERY));
 
 			if( (isset($_REQUEST['context']) && $_REQUEST['context'] != $this->id) || (isset($query_vars['context']) && $query_vars['context'] != $this->id) )
 				return $form_fields;
 
-			$ajax_nonce = $this->wp_create_nonce("set_post_thumbnail-{$this->post_type}-{$this->id}-{$calling_post_id}");
+			$ajax_nonce = wp_create_nonce("set_post_thumbnail-{$this->post_type}-{$this->id}-{$calling_post_id}");
 			$link = sprintf('<a id="%4$s-%1$s-thumbnail-%2$s" class="%1$s-thumbnail" href="#" onclick="MultiPostThumbnails.setAsThumbnail(\'%2$s\', \'%1$s\', \'%4$s\', \'%5$s\');return false;">' . __( 'Set as %3$s', 'multiple-post-thumbnails' ) . '</a>', $this->id, $post->ID, $this->label, $this->post_type, $ajax_nonce);
 			$form_fields["{$this->post_type}-{$this->id}-thumbnail"] = array(
 				'label' => $this->label,
@@ -217,7 +217,7 @@ if (!class_exists('MultiPostThumbnails')) {
 			if ( ! in_array( $hook, array( 'post-new.php', 'post.php', 'media-upload-popup' ) ) )
 				return;
 
-			if ($this->version_compare($wp_version, '3.5', '<')) {
+			if (version_compare($wp_version, '3.5', '<')) {
 				add_thickbox();
 				wp_enqueue_script( "mpt-featured-image", $this->plugins_url( 'js/multi-post-thumbnails-admin.js', __FILE__ ), array( 'jquery', 'media-upload' ) );
 			} else { // 3.5+ media modal
@@ -253,7 +253,7 @@ if (!class_exists('MultiPostThumbnails')) {
 		 * @return boolean 
 		 */
 		public function filter_is_protected_meta($protected, $meta_key) {
-			if ($this->apply_filters('mpt_unprotect_meta', false)) {
+			if (apply_filters('mpt_unprotect_meta', false)) {
 				return $protected;
 			}
 			
@@ -413,9 +413,9 @@ if (!class_exists('MultiPostThumbnails')) {
 			global $content_width, $_wp_additional_image_sizes, $post_ID, $wp_version;
 			
 			$url_class = "";
-			$ajax_nonce = $this->wp_create_nonce("set_post_thumbnail-{$this->post_type}-{$this->id}-{$post_ID}");
+			$ajax_nonce = wp_create_nonce("set_post_thumbnail-{$this->post_type}-{$this->id}-{$post_ID}");
 			
-			if ($this->version_compare($wp_version, '3.5', '<')) {
+			if (version_compare($wp_version, '3.5', '<')) {
 				// Use the old thickbox for versions prior to 3.5
 				$image_library_url = get_upload_iframe_src('image');
 				// if TB_iframe is not moved to end of query string, thickbox will remove all query args after it.
@@ -453,7 +453,7 @@ if (!class_exists('MultiPostThumbnails')) {
 				$content_width = $old_content_width;
 			}
 			
-			if ($this->version_compare($wp_version, '3.5', '>=')) {
+			if (version_compare($wp_version, '3.5', '>=')) {
 				$content .= sprintf('<script>%s</script>', $modal_js);
 			}
 			
@@ -481,7 +481,7 @@ if (!class_exists('MultiPostThumbnails')) {
 			}
 
 			if ($thumbnail_id && get_post($thumbnail_id)) {
-				$thumbnail_html = $this->wp_get_attachment_image($thumbnail_id, 'thumbnail');
+				$thumbnail_html = wp_get_attachment_image($thumbnail_id, 'thumbnail');
 				if (!empty($thumbnail_html)) {
 					self::set_meta($post_ID, $this->post_type, $this->id, $thumbnail_id);
 					return $this->mpt_die($this->post_thumbnail_html($thumbnail_id));
