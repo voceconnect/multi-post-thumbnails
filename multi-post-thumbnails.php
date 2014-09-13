@@ -92,10 +92,24 @@ if (!class_exists('MultiPostThumbnails')) {
 				return;
 			}
 
+			$this->add_theme_support();
+
+			$this->attach_hooks();
+
+		}
+
+		public function add_theme_support() {
+
 			// add theme support if not already added
-			if ( ! $this->current_theme_supports('post-thumbnails')) {
-				$this->add_theme_support( 'post-thumbnails' );
+			if ( ! current_theme_supports( 'post-thumbnails' ) ) {
+
+				add_theme_support( 'post-thumbnails' );
+
 			}
+
+		}
+
+		public function attach_hooks() {
 
 			add_action('add_meta_boxes', array($this, 'add_metabox'));
 			if ( $this->version_compare($wp_version, '3.5', '<')) {
