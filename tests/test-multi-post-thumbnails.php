@@ -93,6 +93,7 @@ class TestMultiPostThumbnails extends WP_UnitTestCase {
 	}
 
 	/**
+	 * @dataProvider provider_test_register
 	 * @covers MultiPostThumbnails::register
 	 */
 	function test_register( $register_args, $expected_func_calls ) {
