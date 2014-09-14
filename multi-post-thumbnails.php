@@ -64,31 +64,7 @@ if (!class_exists('MultiPostThumbnails')) {
 		 */
 		public function register( $args = array() ) {
 
-			$this->parse_arguments( $args );
-
-			// "label" and "id" are required
-			if ( is_null( $this->label ) || is_null( $this->id ) ) {
-
-				if ( WP_DEBUG ) {
-
-					$error_message = $this->get_register_required_field_error_message();
-
-					trigger_error( $error_message );
-
-				}
-
-				return;
-
-			}
-
-			$this->add_theme_support();
-
-			$this->attach_hooks();
-
-		}
-
-		public function parse_arguments( $args ) {
-
+			// parse arugments and set defaults
 			$defaults = array(
 				'label'     => null,
 				'id'        => null,
@@ -104,6 +80,31 @@ if (!class_exists('MultiPostThumbnails')) {
 			foreach ( $args as $k => $v ) {
 
 				$this->$k = $v;
+
+			}
+
+			// "label" and "id" are required
+			if ( is_null( $this->label ) || is_null( $this->id ) ) {
+
+				$this->trigger_registration_error();
+
+				return;
+
+			}
+
+			$this->add_theme_support();
+
+			$this->attach_hooks();
+
+		}
+
+		public function trigger_registration_error() {
+
+			if ( defined( 'WP_DEBUG' ) && WP_DEBUG ) {
+
+				$error_message = $this->get_register_required_field_error_message();
+
+				trigger_error( $error_message );
 
 			}
 
