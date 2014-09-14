@@ -49,8 +49,9 @@ class TestMultiPostThumbnails extends WP_UnitTestCase {
 
 		/**
 		 * Arguments for register() test:
-		 * - $register_args - passed in to register() call
-		 * - $expected_func_calls - array of functions we expect to be called
+		 * - array $register_args - passed in to register() call
+		 * - array $expected_func_calls - functions we expect to be called
+		 * - bool $theme_has_thumbnail_support - whether or not post-thumbnails support has been added
 		 */
 		return array(
 			/**
@@ -62,9 +63,9 @@ class TestMultiPostThumbnails extends WP_UnitTestCase {
 					'label' => 'Thumbnail Label'
 				),
 				array(
-					'add_theme_support',
 					'attach_hooks',
-				)
+				),
+				true
 			),
 			/**
 			 * Missing required "id" arg
@@ -75,7 +76,8 @@ class TestMultiPostThumbnails extends WP_UnitTestCase {
 				),
 				array(
 					'trigger_registration_error',
-				)
+				),
+				false
 			),
 			/**
 			 * Missing required "label" arg
@@ -86,7 +88,8 @@ class TestMultiPostThumbnails extends WP_UnitTestCase {
 				),
 				array(
 					'trigger_registration_error',
-				)
+				),
+				false
 			)
 		);
 
@@ -96,7 +99,11 @@ class TestMultiPostThumbnails extends WP_UnitTestCase {
 	 * @dataProvider provider_test_register
 	 * @covers MultiPostThumbnails::register
 	 */
-	function test_register( $register_args, $expected_func_calls ) {
+	function test_register( $register_args, $expected_func_calls, $theme_has_thumbnail_support ) {
+
+		// clean up side effects from other data sets
+		// @TODO determine where to put this logic, or if it's even necessary
+		remove_theme_support( MultiPostThumbnails::THEME_SUPPORT );
 
 		$mpt = $this->getMockBuilder( 'MultiPostThumbnails' )
 				->disableOriginalConstructor()
@@ -111,6 +118,8 @@ class TestMultiPostThumbnails extends WP_UnitTestCase {
 		}
 
 		$mpt->register( $register_args );
+
+		$this->assertEquals( $theme_has_thumbnail_support, current_theme_supports( MultiPostThumbnails::THEME_SUPPORT ) );
 
 	}
 

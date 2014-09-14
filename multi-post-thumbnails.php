@@ -29,6 +29,8 @@ if (!class_exists('MultiPostThumbnails')) {
 
 	class MultiPostThumbnails {
 
+		const     THEME_SUPPORT = 'post-thumbnails';
+
 		public    $label;
 		public    $id;
 		protected $post_type;
@@ -92,7 +94,8 @@ if (!class_exists('MultiPostThumbnails')) {
 
 			}
 
-			$this->add_theme_support();
+			// Ensure that the current theme supports post-thumbnails since MPT relies on it
+			add_theme_support( self::THEME_SUPPORT );
 
 			$this->attach_hooks();
 
@@ -123,17 +126,6 @@ if (!class_exists('MultiPostThumbnails')) {
 				$error_message = $this->get_register_required_field_error_message();
 
 				trigger_error( $error_message );
-
-			}
-
-		}
-
-		public function add_theme_support() {
-
-			// add theme support if not already added
-			if ( ! current_theme_supports( 'post-thumbnails' ) ) {
-
-				add_theme_support( 'post-thumbnails' );
 
 			}
 
