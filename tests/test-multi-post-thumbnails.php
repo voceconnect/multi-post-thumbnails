@@ -45,72 +45,70 @@ class TestMultiPostThumbnails extends WP_UnitTestCase {
 
 	}
 
+	// function test_register
+
 	function provider_test_register() {
 
+		/**
+		 * Arguments for register() test:
+		 * - $register_args - passed in to register() call
+		 * - $expected_func_calls - array of functions we expect to be called
+		 */
 		return array(
-
-			array( true, true, true, 1, 0, 1, true ),
-			array( true, true, false, 1, 0, 1, true ),
-
-			array( false, true, false, 1, 1, 1, true ),
-
-
-			array( false, false, false, 0, 0, 0, false, null, null, null )
-
+			/**
+			 * All required args are specified
+			 */
+			array(
+				array(
+					'id'    => 'thumbnail-id',
+					'label' => 'Thumbnail Label'
+				),
+				array(
+					'add_theme_support',
+					'attach_hooks',
+				)
+			),
+			/**
+			 * Missing required "id" arg
+			 */
+			array(
+				array(
+					'label' => 'Thumbnail Label'
+				),
+				array(
+					'trigger_registration_error',
+				)
+			),
+			/**
+			 * Missing required "label" arg
+			 */
+			array(
+				array(
+					'id' => 'thumbnail-id'
+				),
+				array(
+					'trigger_registration_error',
+				)
+			)
 		);
 
 	}
 
-	/**
-	 * @covers       MultiPostThumbnails::register
-	 * @dataProvider provider_test_register
-	 */
-	function test_register( $current_theme_supports, $add_theme_support, $version_compare, $current_theme_supports_expects, $add_theme_support_expects, $version_compare_expects, $assertFilters, $label = 'foo', $id = 'bar', $post_type = 'post' ) {
+	function test_register( $register_args, $expected_func_calls ) {
 
 		$mpt = $this->getMockBuilder( 'MultiPostThumbnails' )
-			->disableOriginalConstructor()
-			->setMethods( array( 'version_compare', 'current_theme_supports', 'add_theme_support' ) )
-			->getMock();
+				->disableOriginalConstructor()
+				->setMethods( $expected_func_calls )
+				->getMock();
 
-		$mpt->expects( $this->exactly( $current_theme_supports_expects ) )
-			->method( 'current_theme_supports' )
-			->will( $this->returnValue( $current_theme_supports ) );
+		foreach ( $expected_func_calls as $expected_func ) {
 
-		$mpt->expects( $this->exactly( $add_theme_support_expects ) )
-			->method( 'add_theme_support' )
-			->will( $this->returnValue( $add_theme_support ) );
-
-		$mpt->expects( $this->exactly( $version_compare_expects ) )
-			->method( 'version_compare' )
-			->will( $this->returnValue( $version_compare ) );
-
-		$mpt->register( array( 'label' => $label, 'id' => $id ) );
-
-		if ( ! $id || ! $label ) {
-
-			$expected_error_msg = $mpt->get_register_required_field_error_message();
-
-			$this->assertError( $expected_error_msg );
+			$mpt->expects( $this->once() )
+				->method( $expected_func );
 
 		}
 
-		if ( $assertFilters ) {
-
-
-			$this->assertEquals( has_action( 'add_meta_boxes', array( $mpt, 'add_metabox' ) ), 10 );
-			if ( $version_compare ) {
-				$this->assertEquals( has_filter( 'attachment_fields_to_edit', array( $mpt, 'add_attachment_field' ) ), 20 );
-			}
-			$this->assertEquals( has_filter( 'admin_enqueue_scripts', array( $mpt, 'enqueue_admin_scripts' ) ), 10 );
-			$this->assertEquals( has_filter( 'admin_print_scripts-post.php', array( $mpt, 'admin_header_scripts' ) ), 10 );
-			$this->assertEquals( has_filter( 'admin_print_scripts-post-new.php', array( $mpt, 'admin_header_scripts' ) ), 10 );
-			$this->assertEquals( has_filter( 'wp_ajax_set-' . $post_type . '-' . $id . '-thumbnail', array( $mpt, 'set_thumbnail' ) ), 10 );
-			$this->assertEquals( has_filter( 'delete_attachment', array( $mpt, 'action_delete_attachment' ) ), 10 );
-			$this->assertEquals( has_filter( 'is_protected_meta', array( $mpt, 'filter_is_protected_meta' ) ), 20 );
-
-
-		}
-
+		$mpt->register( $register_args );
 
 	}
 
