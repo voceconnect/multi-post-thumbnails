@@ -131,20 +131,29 @@ if (!class_exists('MultiPostThumbnails')) {
 
 		}
 
+		/**
+		 * Attach all necessary WP hooks to this instance
+		 *
+		 * @global string $wp_version
+		 */
 		public function attach_hooks() {
 
 			global $wp_version;
 
-			add_action('add_meta_boxes', array($this, 'add_metabox'));
+			// hook in to the attachment form for versions of WP before the media modal was reworked
 			if ( version_compare( $wp_version, '3.5', '<' ) ) {
+
 				add_filter('attachment_fields_to_edit', array($this, 'add_attachment_field'), 20, 2);
+
 			}
-			add_action('admin_enqueue_scripts', array($this, 'enqueue_admin_scripts'));
-			add_action('admin_print_scripts-post.php', array($this, 'admin_header_scripts'));
-			add_action('admin_print_scripts-post-new.php', array($this, 'admin_header_scripts'));
-			add_action("wp_ajax_set-{$this->post_type}-{$this->id}-thumbnail", array($this, 'set_thumbnail'));
-			add_action('delete_attachment', array($this, 'action_delete_attachment'));
-			add_filter('is_protected_meta', array($this, 'filter_is_protected_meta'), 20, 2);
+
+			add_action( 'add_meta_boxes', array( $this, 'add_metabox' ) );
+			add_action( 'admin_enqueue_scripts', array( $this, 'enqueue_admin_scripts' ) );
+			add_action( 'admin_print_scripts-post.php', array( $this, 'admin_header_scripts' ) );
+			add_action( 'admin_print_scripts-post-new.php', array( $this, 'admin_header_scripts' ) );
+			add_action( "wp_ajax_set-{$this->post_type}-{$this->id}-thumbnail", array( $this, 'set_thumbnail' ) );
+			add_action( 'delete_attachment', array( $this, 'action_delete_attachment' ) );
+			add_filter( 'is_protected_meta', array( $this, 'filter_is_protected_meta' ), 20, 2 );
 
 		}
 
