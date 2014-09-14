@@ -147,6 +147,49 @@ class TestMultiPostThumbnails extends WP_UnitTestCase {
 	}
 
 	/**
+	 * @covers MultiPostThumbnails::attach_hooks
+	 */
+	function test_attach_hooks_wp_35() {
+
+		$GLOBALS['wp_version'] = '3.5';
+
+		$mpt = new MultiPostThumbnails( array(
+			'label'     => 'Foo',
+			'id'        => 'foo',
+			'post_type' => 'post'
+		) );
+
+		$this->assertEquals( 10, has_action( 'add_meta_boxes', array( $mpt, 'add_metabox' ) ) );
+		$this->assertEquals( 10, has_action( 'admin_print_scripts-post.php', array( $mpt, 'admin_header_scripts' ) ) );
+		$this->assertEquals( 10, has_action( 'admin_print_scripts-post-new.php', array( $mpt, 'admin_header_scripts' ) ) );
+		$this->assertEquals( 10, has_action( 'wp_ajax_set-post-foo-thumbnail', array( $mpt, 'set_thumbnail' ) ) );
+		$this->assertEquals( 10, has_action( 'delete_attachment', array( $mpt, 'action_delete_attachment' ) ) );
+		$this->assertEquals( 20, has_filter( 'is_protected_meta', array( $mpt, 'filter_is_protected_meta' ) ) );
+
+		// WP 3.5 and above shouldn't get the attachment_fields_to_edit filter
+		$this->assertFalse( has_filter( 'attachment_fields_to_edit', array( $mpt, 'add_attachment_field' ) ) );
+
+	}
+
+	/**
+	 * @covers MultiPostThumbnails::attach_hooks
+	 */
+	function test_attach_hooks_pre_wp_35() {
+
+		$GLOBALS['wp_version'] = '3.4.2';
+
+		$mpt = new MultiPostThumbnails( array(
+			'label'     => 'Foo',
+			'id'        => 'foo',
+			'post_type' => 'post'
+		) );
+
+		// WP 3.4.x and below should get the attachment_fields_to_edit filter
+		$this->assertEquals( 20, has_filter( 'attachment_fields_to_edit', array( $mpt, 'add_attachment_field' ) ) );
+
+	}
+
+	/**
 	 * @covers MultiPostThumbnails::get_meta_key
 	 */
 	function test_get_meta_key() {
