@@ -45,8 +45,6 @@ class TestMultiPostThumbnails extends WP_UnitTestCase {
 
 	}
 
-	// function test_register
-
 	function provider_test_register() {
 
 		/**
@@ -94,6 +92,9 @@ class TestMultiPostThumbnails extends WP_UnitTestCase {
 
 	}
 
+	/**
+	 * @covers MultiPostThumbnails::register
+	 */
 	function test_register( $register_args, $expected_func_calls ) {
 
 		$mpt = $this->getMockBuilder( 'MultiPostThumbnails' )
