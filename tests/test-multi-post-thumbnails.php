@@ -115,6 +115,29 @@ class TestMultiPostThumbnails extends WP_UnitTestCase {
 	}
 
 	/**
+	 * @covers MultiPostThumbnails::trigger_registration_error
+	 */
+	function test_trigger_registration_error() {
+
+		$error_message_method = 'get_register_required_field_error_message';
+		$error_message        = 'Error';
+
+		$mpt = $this->getMockBuilder( 'MultiPostThumbnails' )
+				->disableOriginalConstructor()
+				->setMethods( array( $error_message_method ) )
+				->getMock();
+
+		$mpt->expects( $this->once() )
+			->method( $error_message_method )
+			->will( $this->returnValue( $error_message ) );
+
+		$mpt->trigger_registration_error();
+
+		$this->assertError( $error_message );
+
+	}
+
+	/**
 	 * @covers MultiPostThumbnails::get_meta_key
 	 */
 	function test_get_meta_key() {

@@ -98,6 +98,24 @@ if (!class_exists('MultiPostThumbnails')) {
 
 		}
 
+		/**
+		 * Generate an error string for missing required constructor arguments
+		 *
+		 * @codeCoverageIgnore
+		 *
+		 * @return string Error message for missing required fields
+		 */
+		public function get_register_required_field_error_message() {
+
+			$error_format = __( "The 'label' and 'id' values of the 'args' parameter of '%s::%s()' are required", 'multiple-post-thumbnails' );
+
+			return sprintf( $error_format, __CLASS__, __FUNCTION__ );
+
+		}
+
+		/**
+		 * If we are in debug mode, trigger an error when required fields are missing during registration
+		 */
 		public function trigger_registration_error() {
 
 			if ( defined( 'WP_DEBUG' ) && WP_DEBUG ) {
@@ -135,14 +153,6 @@ if (!class_exists('MultiPostThumbnails')) {
 			add_action("wp_ajax_set-{$this->post_type}-{$this->id}-thumbnail", array($this, 'set_thumbnail'));
 			add_action('delete_attachment', array($this, 'action_delete_attachment'));
 			add_filter('is_protected_meta', array($this, 'filter_is_protected_meta'), 20, 2);
-
-		}
-
-		public function get_register_required_field_error_message() {
-
-			$error_format = __( "The 'label' and 'id' values of the 'args' parameter of '%s::%s()' are required", 'multiple-post-thumbnails' );
-
-			return sprintf( $error_format, __CLASS__, __FUNCTION__ );
 
 		}
 
