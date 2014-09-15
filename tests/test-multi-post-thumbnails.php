@@ -250,36 +250,24 @@ class TestMultiPostThumbnails extends WP_UnitTestCase {
 	/**
 	 * @covers MultiPostThumbnails::add_attachment_field
 	 */
-	function test_add_attachment_field_none() {
+	function test_add_attachment_field_no_post_in_superglobal() {
 
-		$mpt = $this->getMockBuilder( 'MultiPostThumbnails' )
-			->disableOriginalConstructor()
-			->setMethods( array( 'wp_parse_args', 'wp_create_nonce', 'get_post' ) )
-			->getMock();
-
-		$mpt->expects( $this->never() )
-			->method( 'wp_parse_args' );
-
-		$mpt->expects( $this->never() )
-			->method( 'wp_create_nonce' );
-
-		$mpt->expects( $this->never() )
-			->method( 'get_post' );
-
-		$actual   = $mpt->add_attachment_field( 'foo', 'bar' );
-		$expected = 'foo';
-
-		$this->assertEquals( $expected, $actual );
-
+		$mpt = new MultiPostThumbnails();
+		$actual = $mpt->add_attachment_field('foo', 'bar');
+		$this->assertEquals( 'foo', $actual );
 
 	}
+
+
+
 
 	/**
 	 * @covers MultiPostThumbnails::add_attachment_field
 	 */
 	function test_add_attachment_field_get_calling_post_id_null() {
 
-		$_GET['post_id'] = 123;
+		$post            = $this->factory->post->create_and_get();
+		$_GET['post_id'] = $post->ID;
 
 		$mpt = $this->getMockBuilder( 'MultiPostThumbnails' )
 			->disableOriginalConstructor()
