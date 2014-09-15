@@ -224,34 +224,26 @@ class TestMultiPostThumbnails extends WP_UnitTestCase {
 	 */
 	function test_thumbnail_meta_box() {
 
-		$id = 'bar';
 		$thumbnail_id = 'barfoo';
+		$meta_key = 'fozbar';
 		$post = $this->factory->post->create_and_get();
 		$GLOBALS['post'] = $post;
+		update_post_meta( $post->ID, $meta_key, $thumbnail_id );
 
 		$mpt = $this->getMockBuilder( 'MultiPostThumbnails' )
 			->disableOriginalConstructor()
-			->setMethods( array( 'get_meta_key' ) )
+			->setMethods( array( 'get_meta_key', 'post_thumbnail_html' ) )
 			->getMock();
-
-		// set instance variables
-		$mpt->register( array( 'label' => 'foo', 'id' => $id ) );
 
 		$mpt->expects( $this->once() )
 			->method( 'get_meta_key' )
-			->will( $this->returnvalue( 'fozbar' ) );
+			->will( $this->returnvalue( $meta_key ) );
 
-		update_post_meta( $post->ID, 'fozbar', $thumbnail_id );
+		$mpt->expects( $this->once() )
+			->method( 'post_thumbnail_html')
+			->with ( $this->equalTo( $thumbnail_id ) );
 
-		ob_start();
 		$mpt->thumbnail_meta_box();
-		$output = ob_get_clean();
-		$document = new DOMDocument;
-		$document->preserveWhiteSpace = false;
-		$document->loadHTML( $output );
-		$xpath      = new DOMXPath ( $document );
-		$anchor_tag = $xpath->query( sprintf( "//a[@id='set-%s-%s-thumbnail' and @data-thumbnail_id='%s']", $post->post_type, $id, $thumbnail_id ) );
-		$this->assertEquals( 1, $anchor_tag->length, 'MultiPostThumbnails::thumbnail_meta_box is not outputting HTML as expected' );
 
 	}
 
