@@ -224,29 +224,34 @@ class TestMultiPostThumbnails extends WP_UnitTestCase {
 	 */
 	function test_thumbnail_meta_box() {
 
-		$post_id         = 123;
-		$GLOBALS['post'] = (object) array( 'ID' => $post_id );
+		$id = 'bar';
+		$thumbnail_id = 'barfoo';
+		$post = $this->factory->post->create_and_get();
+		$GLOBALS['post'] = $post;
 
 		$mpt = $this->getMockBuilder( 'MultiPostThumbnails' )
 			->disableOriginalConstructor()
-			->setMethods( array( 'post_thumbnail_html', 'get_post_meta', 'get_meta_key' ) )
+			->setMethods( array( 'get_meta_key' ) )
 			->getMock();
+
+		// set instance variables
+		$mpt->register( array( 'label' => 'foo', 'id' => $id ) );
 
 		$mpt->expects( $this->once() )
 			->method( 'get_meta_key' )
-			->will( $this->returnValue( 'metaKey' ) );
+			->will( $this->returnvalue( 'fozbar' ) );
 
+		update_post_meta( $post->ID, 'fozbar', $thumbnail_id );
 
-		$mpt->expects( $this->once() )
-			->method( 'get_post_meta' )
-			->with( $this->equalTo( $post_id ), $this->equalTo( 'metaKey' ), true )
-			->will( $this->returnValue( 'thumbnailid' ) );
-
-		$mpt->expects( $this->once() )
-			->method( 'post_thumbnail_html' );
-
+		ob_start();
 		$mpt->thumbnail_meta_box();
-
+		$output = ob_get_clean();
+		$document = new DOMDocument;
+		$document->preserveWhiteSpace = false;
+		$document->loadHTML( $output );
+		$xpath      = new DOMXPath ( $document );
+		$anchor_tag = $xpath->query( sprintf( "//a[@id='set-%s-%s-thumbnail' and @data-thumbnail_id='%s']", $post->post_type, $id, $thumbnail_id ) );
+		$this->assertEquals( 1, $anchor_tag->length, 'MultiPostThumbnails::thumbnail_meta_box is not outputting HTML as expected' );
 
 	}
 
