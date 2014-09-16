@@ -29,8 +29,21 @@ if (!class_exists('MultiPostThumbnails')) {
 
 	class MultiPostThumbnails {
 
-		public function __construct($args = array()) {
-			$this->register($args);
+		const     THEME_SUPPORT = 'post-thumbnails';
+
+		public    $label;
+		public    $id;
+		protected $post_type;
+		protected $priority;
+		protected $context;
+
+		/**
+		 * @param array $args
+		 *
+		 * @codeCoverageIgnore
+		 */
+		public function __construct($args = array() ) {
+			$this->register( $args );
 		}
 
 		/**
@@ -47,59 +60,115 @@ if (!class_exists('MultiPostThumbnails')) {
 		 * post_type - The post type to register this thumbnail for. Defaults to post.
 		 *
 		 * priority - The admin metabox priority. Defaults to 'low'.
-		 * 
+		 *
 		 * context - The admin metabox context. Defaults to 'side'.
 		 *
 		 * @param array|string $args See above description.
+		 * @param bool is this a shell call or do we need to register hooks
 		 * @return void
 		 */
-		public function register($args = array()) {
-			global $wp_version;
-			
+		public function register( $args = array(), $shell = true ) {
+			$shell = !$shell ? true : false;
+
+			// parse arugments and set defaults
 			$defaults = array(
-				'label' => null,
-				'id' => null,
+				'label'     => ! $shell ? null : 'placeholder',
+				'id'        => null,
 				'post_type' => 'post',
-				'priority' => 'low',
-				'context' => 'side',
+				'priority'  => 'low',
+				'context'   => 'side',
 			);
 
-			$args = wp_parse_args($args, $defaults);
 
-			// Create and set properties
-			foreach($args as $k => $v) {
+
+			$args = wp_parse_args( $args, $defaults );
+
+			$args = array_intersect_key( $args, $defaults );
+			foreach ( $args as $k => $v ) {
+
 				$this->$k = $v;
+
 			}
 
-			// Need these args to be set at a minimum
-			if (null === $this->label || null === $this->id) {
-				if (WP_DEBUG) {
-					trigger_error(sprintf(__("The 'label' and 'id' values of the 'args' parameter of '%s::%s()' are required", 'multiple-post-thumbnails'), __CLASS__, __FUNCTION__));
-				}
+			// "label" and "id" are required
+			if (  is_null( $this->label ) || is_null( $this->id ) ) {
+
+				$this->trigger_registration_error();
+
 				return;
+
 			}
 
-			// add theme support if not already added
-			if (!current_theme_supports('post-thumbnails')) {
-				add_theme_support( 'post-thumbnails' );
+			// Ensure that the current theme supports post-thumbnails since MPT relies on it
+			add_theme_support( self::THEME_SUPPORT );
+
+			if ( ! $shell ) {
+
+				$this->attach_hooks();
 			}
 
-			add_action('add_meta_boxes', array($this, 'add_metabox'));
-			if (version_compare($wp_version, '3.5', '<')) {				
-				add_filter('attachment_fields_to_edit', array($this, 'add_attachment_field'), 20, 2);
-			}
-			add_action('admin_enqueue_scripts', array($this, 'enqueue_admin_scripts'));
-			add_action('admin_print_scripts-post.php', array($this, 'admin_header_scripts'));
-			add_action('admin_print_scripts-post-new.php', array($this, 'admin_header_scripts'));
-			add_action("wp_ajax_set-{$this->post_type}-{$this->id}-thumbnail", array($this, 'set_thumbnail'));
-			add_action('delete_attachment', array($this, 'action_delete_attachment'));
-			add_filter('is_protected_meta', array($this, 'filter_is_protected_meta'), 20, 2);
 		}
-		
+
+		/**
+		 * Generate an error string for missing required constructor arguments
+		 *
+		 * @codeCoverageIgnore
+		 *
+		 * @return string Error message for missing required fields
+		 */
+		public function get_register_required_field_error_message() {
+
+			$error_format = __( "The 'label' and 'id' values of the 'args' parameter of '%s::%s()' are required", 'multiple-post-thumbnails' );
+
+			return sprintf( $error_format, __CLASS__, __FUNCTION__ );
+
+		}
+
+		/**
+		 * If we are in debug mode, trigger an error when required fields are missing during registration
+		 */
+		public function trigger_registration_error() {
+
+			if ( defined( 'WP_DEBUG' ) && WP_DEBUG ) {
+
+				$error_message = $this->get_register_required_field_error_message();
+
+				trigger_error( $error_message );
+
+			}
+
+		}
+
+		/**
+		 * Attach all necessary WP hooks to this instance
+		 *
+		 * @global string $wp_version
+		 */
+		public function attach_hooks() {
+
+			global $wp_version;
+
+			// hook in to the attachment form for versions of WP before the media modal was reworked
+			if ( version_compare( $wp_version, '3.5', '<' ) ) {
+
+				add_filter('attachment_fields_to_edit', array($this, 'add_attachment_field'), 20, 2);
+
+			}
+
+			add_action( 'add_meta_boxes', array( $this, 'add_metabox' ) );
+			add_action( 'admin_enqueue_scripts', array( $this, 'enqueue_admin_scripts' ) );
+			add_action( 'admin_print_scripts-post.php', array( $this, 'admin_header_scripts' ) );
+			add_action( 'admin_print_scripts-post-new.php', array( $this, 'admin_header_scripts' ) );
+			add_action( "wp_ajax_set-{$this->post_type}-{$this->id}-thumbnail", array( $this, 'set_thumbnail' ) );
+			add_action( 'delete_attachment', array( $this, 'action_delete_attachment' ) );
+			add_filter( 'is_protected_meta', array( $this, 'filter_is_protected_meta' ), 20, 2 );
+
+		}
+
 		/**
 		 * get the meta key used to store a post's thumbnail
-		 * 
-		 * @return string 
+		 *
+		 * @return string
 		 */
 		public function get_meta_key() {
 			return "{$this->post_type}_{$this->id}_thumbnail_id";
@@ -121,9 +190,10 @@ if (!class_exists('MultiPostThumbnails')) {
 		 */
 		public function thumbnail_meta_box() {
 			global $post;
-			
-			$thumbnail_id = get_post_meta($post->ID, $this->get_meta_key(), true);
-			echo $this->post_thumbnail_html($thumbnail_id);	
+
+			$thumbnail_id = $this->get_thumbnail_id( $post->ID );
+			echo $this->post_thumbnail_html($thumbnail_id);
+
 		}
 
 		/**
@@ -134,6 +204,7 @@ if (!class_exists('MultiPostThumbnails')) {
 		 * @return void
 		 */
 		public function add_attachment_field($form_fields, $post) {
+
 			$calling_post_id = 0;
 			if (isset($_GET['post_id']))
 				$calling_post_id = absint($_GET['post_id']);
@@ -145,13 +216,14 @@ if (!class_exists('MultiPostThumbnails')) {
 
 			// check the post type to see if link needs to be added
 			$calling_post = get_post($calling_post_id);
+
 			if (is_null($calling_post) || $calling_post->post_type != $this->post_type) {
 				return $form_fields;
 			}
 
 			$referer = wp_get_referer();
 			$query_vars = wp_parse_args(parse_url($referer, PHP_URL_QUERY));
-			
+
 			if( (isset($_REQUEST['context']) && $_REQUEST['context'] != $this->id) || (isset($query_vars['context']) && $query_vars['context'] != $this->id) )
 				return $form_fields;
 
@@ -160,32 +232,39 @@ if (!class_exists('MultiPostThumbnails')) {
 			$form_fields["{$this->post_type}-{$this->id}-thumbnail"] = array(
 				'label' => $this->label,
 				'input' => 'html',
-				'html' => $link);
+				'html' => $link
+			);
+
+
+
 			return $form_fields;
 		}
 
 		/**
 		 * Enqueue admin JavaScripts
 		 *
+		 * @param $hook
+		 *
 		 * @return void
 		 */
 		public function enqueue_admin_scripts( $hook ) {
 			global $wp_version;
-			
+
 			// only load on select pages
 			if ( ! in_array( $hook, array( 'post-new.php', 'post.php', 'media-upload-popup' ) ) )
 				return;
 
-			if (version_compare($wp_version, '3.5', '<')) {	
+			if (version_compare($wp_version, '3.5', '<')) {
 				add_thickbox();
 				wp_enqueue_script( "mpt-featured-image", $this->plugins_url( 'js/multi-post-thumbnails-admin.js', __FILE__ ), array( 'jquery', 'media-upload' ) );
 			} else { // 3.5+ media modal
+
 				wp_enqueue_media();
 				wp_enqueue_script( "mpt-featured-image", $this->plugins_url( 'js/multi-post-thumbnails-admin.js', __FILE__ ), array( 'jquery', 'set-post-thumbnail' ) );
-				wp_enqueue_script( "mpt-featured-image-modal", $this->plugins_url( 'js/media-modal.js', __FILE__ ), array( 'jquery', 'media-models' ) );				
+				wp_enqueue_script( "mpt-featured-image-modal", $this->plugins_url( 'js/media-modal.js', __FILE__ ), array( 'jquery', 'media-models' ) );
 			}
 		}
-		
+
 		public function admin_header_scripts() {
 			$post_id = get_the_ID();
 			echo "<script>var post_id = $post_id;</script>";
@@ -203,23 +282,23 @@ if (!class_exists('MultiPostThumbnails')) {
 
 			$wpdb->query( $wpdb->prepare( "DELETE FROM $wpdb->postmeta WHERE meta_key = '%s' AND meta_value = %d", $this->get_meta_key(), $post_id ));
 		}
-		
+
 		/**
 		 * make the meta for storing thumbnails protected so it doesn't show in the Custom Fields metabox
-		 * 
+		 *
 		 * @param boolean $protected Passed in from filter
 		 * @param type $meta_key Passed in from filter
-		 * @return boolean 
+		 * @return boolean
 		 */
 		public function filter_is_protected_meta($protected, $meta_key) {
 			if (apply_filters('mpt_unprotect_meta', false)) {
 				return $protected;
 			}
-			
+
 			if ($meta_key == $this->get_meta_key()) {
 				$protected = true;
 			}
-			
+
 			return $protected;
 		}
 
@@ -229,6 +308,8 @@ if (!class_exists('MultiPostThumbnails')) {
 		 * @param string $relative_path Relative file path to the plugin file to get the URL of
 		 * @param string $plugin_path Absolute file path to the plugin base directory
 		 * @return string the URL of the plugin file
+		 *
+		 * @codeCoverageIgnore internal method
 		 */
 		private function plugins_url($relative_path, $plugin_path) {
 			$template_dir = get_template_directory();
@@ -258,32 +339,39 @@ if (!class_exists('MultiPostThumbnails')) {
 		 * @param string $post_type The post type.
 		 * @param string $id The id used to register the thumbnail.
 		 * @param string $post_id Optional. Post ID.
-		 * @return bool Whether post has an image attached.
+		 * @return bool|string Whether post has an image attached, if it does, the thumbnail id
 		 */
 		public static function has_post_thumbnail($post_type, $id, $post_id = null) {
-			if (null === $post_id) {
-				$post_id = get_the_ID();
-			}
+
+			$post_id = $post_id ?: get_the_ID();
 
 			if (!$post_id) {
 				return false;
 			}
+			$mpt = new MultiPostThumbnails( compact( 'post_type', 'id' ), false );
+			$thumbnail_id = $mpt->get_thumbnail_id( $post_id );
 
-			return get_post_meta($post_id, "{$post_type}_{$id}_thumbnail_id", true);
+			return $thumbnail_id;
 		}
 
 		/**
-		 * Display Post Thumbnail.
+		 * Display Post Thumbnail
 		 *
-		 * @param string $post_type The post type.
-		 * @param string $thumb_id The id used to register the thumbnail.
-		 * @param string $post_id Optional. Post ID.
-		 * @param int $size Optional. Image size.  Defaults to 'post-thumbnail', which theme sets using set_post_thumbnail_size( $width, $height, $crop_flag );.
+		 * @param        $post_type The post type
+		 * @param        $thumb_id The id used to register the thumbnail
+		 * @param null   $post_id Optional. Post ID.
+		 * @param string $size Optional. Image size.  Defaults to 'post-thumbnail', which theme sets using set_post_thumbnail_size( $width, $height, $crop_flag );.
 		 * @param string|array $attr Optional. Query string or array of attributes.
-		 * @param bool $link_to_original Optional. Wrap link to original image around thumbnail?
+		 * @param bool   $link_to_original Optional. Wrap link to original image around thumbnail?
+		 * @return void
 		 */
-		public static function the_post_thumbnail($post_type, $thumb_id, $post_id = null, $size = 'post-thumbnail', $attr = '', $link_to_original = false) {
-			echo self::get_the_post_thumbnail($post_type, $thumb_id, $post_id, $size, $attr, $link_to_original);
+		public static function the_post_thumbnail($post_type, $id, $post_id = NULL, $size = 'post-thumbnail', $attr = '' , $link_to_original = false) {
+
+			$post_id = $post_id ?: get_the_ID();
+			$mpt = new MultiPostThumbnails( compact( 'post_type', 'id' ), false );
+			$mpt->get_post_thumbnail($post_id, $size, $attr, $link_to_original, true );
+			unset( $mpt );
+
 		}
 
 		/**
@@ -294,17 +382,39 @@ if (!class_exists('MultiPostThumbnails')) {
 		 * @param int $post_id Optional. Post ID.
 		 * @param string $size Optional. Image size.  Defaults to 'thumbnail'.
 		 * @param bool $link_to_original Optional. Wrap link to original image around thumbnail?
-		 * @param string|array $attr Optional. Query string or array of attributes.
-		  */
-		public static function get_the_post_thumbnail($post_type, $thumb_id, $post_id = NULL, $size = 'post-thumbnail', $attr = '' , $link_to_original = false) {
-			global $id;
-			$post_id = (NULL === $post_id) ? get_the_ID() : $post_id;
-			$post_thumbnail_id = self::get_post_thumbnail_id($post_type, $thumb_id, $post_id);
-			$size = apply_filters("{$post_type}_{$post_id}_thumbnail_size", $size);
+		 * @return string
+		 */
+		 public static function get_the_post_thumbnail($post_type, $id, $post_id = NULL, $size = 'post-thumbnail', $attr = '' , $link_to_original = false) {
+
+			$post_id = $post_id ?: get_the_ID();
+			$mpt = new MultiPostThumbnails( compact( 'post_type', 'id' ), false );
+			$post_thumbnail = $mpt->get_post_thumbnail($post_id, $size, $attr, $link_to_original, false );
+			unset( $mpt );
+			return $post_thumbnail;
+
+		}
+
+
+		/**
+		 * Retrieve the post thumbnail method
+		 *
+		 * @param $post_id
+		 * @param $size
+		 * @param $attr
+		 * @param $link_to_original
+		 * @param bool
+		 *
+		 * @return mixed|void
+		 */
+		public function get_post_thumbnail( $post_id, $size, $attr, $link_to_original, $echo = false ){
+
+			$post_thumbnail_id = $this->get_thumbnail_id( $post_id );
+
+			$size = apply_filters("{$this->post_type}_{$post_id}_thumbnail_size", $size);
 			if ($post_thumbnail_id) {
-				do_action("begin_fetch_multi_{$post_type}_thumbnail_html", $post_id, $post_thumbnail_id, $size); // for "Just In Time" filtering of all of wp_get_attachment_image()'s filters
+				do_action("begin_fetch_multi_{$this->post_type}_thumbnail_html", $post_id, $post_thumbnail_id, $size); // for "Just In Time" filtering of all of wp_get_attachment_image()'s filters
 				$html = wp_get_attachment_image( $post_thumbnail_id, $size, false, $attr );
-				do_action("end_fetch_multi_{$post_type}_thumbnail_html", $post_id, $post_thumbnail_id, $size);
+				do_action("end_fetch_multi_{$this->post_type}_thumbnail_html", $post_id, $post_thumbnail_id, $size);
 			} else {
 				$html = '';
 			}
@@ -313,7 +423,13 @@ if (!class_exists('MultiPostThumbnails')) {
 				$html = sprintf('<a href="%s">%s</a>', wp_get_attachment_url($post_thumbnail_id), $html);
 			}
 
-			return apply_filters("{$post_type}_{$thumb_id}_thumbnail_html", $html, $post_id, $post_thumbnail_id, $size, $attr);
+			$post_thumbnail = apply_filters("{$this->post_type}_{$this->id}_thumbnail_html", $html, $post_id, $post_thumbnail_id, $size, $attr);
+
+			if ( ! $echo ) {
+				return $post_thumbnail;
+			}
+			echo $post_thumbnail;
+
 		}
 
 		/**
@@ -325,7 +441,25 @@ if (!class_exists('MultiPostThumbnails')) {
 		 * @return int
 		 */
 		public static function get_post_thumbnail_id($post_type, $id, $post_id) {
-			return get_post_meta($post_id, "{$post_type}_{$id}_thumbnail_id", true);
+
+			$mpt = new MultiPostThumbnails( compact( 'post_type', 'id' ), false );
+			$thumbnail_id = $mpt->get_thumbnail_id( $post_id );
+			unset( $mpt );
+			return $thumbnail_id;
+
+		}
+
+		/**
+		 * Retrieve the thumbnail id
+		 *
+		 * @param $post_id
+		 *
+		 * @return mixed
+		 */
+		public function get_thumbnail_id( $post_id ){
+
+			return get_post_meta( $post_id, $this->get_meta_key(), true );
+
 		}
 
 		/**
@@ -338,10 +472,14 @@ if (!class_exists('MultiPostThumbnails')) {
 		 */
 		public static function get_post_thumbnail_url($post_type, $id, $post_id = 0, $size = null) {
 			if (!$post_id) {
+
 				$post_id = get_the_ID();
+
 			}
 
-			$post_thumbnail_id = self::get_post_thumbnail_id($post_type, $id, $post_id);
+			$mpt = new MultiPostThumbnails( compact( 'post_type', 'id' ), false );
+
+			$post_thumbnail_id = $mpt->get_thumbnail_id( $post_id );
 
 			if ($size) {
 				if ($url = wp_get_attachment_image_src($post_thumbnail_id, $size)) {
@@ -352,7 +490,7 @@ if (!class_exists('MultiPostThumbnails')) {
 			} else {
 				$url = wp_get_attachment_url($post_thumbnail_id);
 			}
-
+			unset( $mpt );
 			return $url;
 		}
 
@@ -361,13 +499,15 @@ if (!class_exists('MultiPostThumbnails')) {
 		 *
 		 * @param string $thumbnail_id The thumbnail's post ID.
 		 * @return string HTML
+		 *
+		 * @codeCoverageIgnore since this can't be accessed externally (protected)
 		 */
-		private function post_thumbnail_html($thumbnail_id = null) {
+		protected function post_thumbnail_html($thumbnail_id = null) {
 			global $content_width, $_wp_additional_image_sizes, $post_ID, $wp_version;
-			
+
 			$url_class = "";
 			$ajax_nonce = wp_create_nonce("set_post_thumbnail-{$this->post_type}-{$this->id}-{$post_ID}");
-			
+
 			if (version_compare($wp_version, '3.5', '<')) {
 				// Use the old thickbox for versions prior to 3.5
 				$image_library_url = get_upload_iframe_src('image');
@@ -405,11 +545,11 @@ if (!class_exists('MultiPostThumbnails')) {
 				}
 				$content_width = $old_content_width;
 			}
-			
+
 			if (version_compare($wp_version, '3.5', '>=')) {
 				$content .= sprintf('<script>%s</script>', $modal_js);
 			}
-			
+
 			return apply_filters( sprintf( '%s_%s_admin_post_thumbnail_html', $this->post_type, $this->id ), $content, $post_ID, $thumbnail_id );
 		}
 
@@ -417,6 +557,7 @@ if (!class_exists('MultiPostThumbnails')) {
 		 * Set/remove the post thumbnail. AJAX handler.
 		 *
 		 * @return string Updated post thumbnail HTML.
+		 *
 		 */
 		public function set_thumbnail() {
 			global $post_ID; // have to do this so get_upload_iframe_src() can grab it
@@ -424,9 +565,7 @@ if (!class_exists('MultiPostThumbnails')) {
 			if ( !current_user_can('edit_post', $post_ID))
 				die('-1');
 			$thumbnail_id = intval($_POST['thumbnail_id']);
-
 			check_ajax_referer("set_post_thumbnail-{$this->post_type}-{$this->id}-{$post_ID}");
-
 			if ($thumbnail_id == '-1') {
 				delete_post_meta($post_ID, $this->get_meta_key());
 				die($this->post_thumbnail_html(null));
@@ -435,17 +574,16 @@ if (!class_exists('MultiPostThumbnails')) {
 			if ($thumbnail_id && get_post($thumbnail_id)) {
 				$thumbnail_html = wp_get_attachment_image($thumbnail_id, 'thumbnail');
 				if (!empty($thumbnail_html)) {
-					$this->set_meta($post_ID, $this->post_type, $this->id, $thumbnail_id);
+					self::set_meta($post_ID, $this->post_type, $this->id, $thumbnail_id);
 					die($this->post_thumbnail_html($thumbnail_id));
 				}
 			}
-
 			die('0');
 		}
-		
+
 		/**
 		 * set thumbnail meta
-		 * 
+		 *
 		 * @param int $post_ID
 		 * @param string $post_type
 		 * @param string $thumbnail_id ID used to register the thumbnail
@@ -456,8 +594,11 @@ if (!class_exists('MultiPostThumbnails')) {
 			return update_post_meta($post_ID, "{$post_type}_{$thumbnail_id}_thumbnail_id", $thumbnail_post_id);
 		}
 
+
 	}
 
 	if ( is_admin() )
 		load_plugin_textdomain( 'multiple-post-thumbnails', FALSE, basename( dirname( __FILE__ ) ) . '/languages/' );
 }
+
+
