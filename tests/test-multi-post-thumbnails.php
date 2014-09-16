@@ -4,7 +4,6 @@
 class TestMultiPostThumbnails extends Voce_WP_UnitTestCase {
 
 	private $errors;
-	protected $backupGlobals = true;
 
 	public function setUp() {
 
