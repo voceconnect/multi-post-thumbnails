@@ -1,17 +1,52 @@
 <?php
 
 
-class TestMultiPostThumbnails extends WP_UnitTestCase {
+class TestMultiPostThumbnails extends Voce_WP_UnitTestCase {
 
 	private $errors;
+	protected $backupGlobals = true;
 
 	public function setUp() {
 
 		parent::setUp();
-
 		$this->errors = array();
-
 		set_error_handler( array( $this, 'errorHandler' ) );
+
+
+	}
+
+	/**
+	 * If these tests are being run on Travis CI, verify that the version of
+	 * WordPress installed is the version that we requested.
+	 *
+	 * @requires PHP 5.3
+	 */
+	function test_wp_version() {
+
+		if ( !getenv( 'TRAVIS' ) )
+			$this->markTestSkipped( 'Test skipped since Travis CI was not detected.' );
+
+		$requested_version = getenv( 'WP_VERSION' );
+
+		// The "latest" version requires special handling.
+		if ( 'latest' === $requested_version ) {
+
+			$file = file_get_contents( ABSPATH . WPINC . '/version.php' );
+			preg_match( '#\$wp_version = \'([^\']+)\';#', $file, $matches );
+			$requested_version = $matches[1];
+
+		}
+
+		$this->assertEquals( get_bloginfo( 'version' ), $requested_version );
+
+	}
+
+	/**
+	 * Ensure that the plugin has been installed and activated.
+	 */
+	function test_plugin_activated() {
+
+		$this->assertTrue( is_plugin_active( 'multi-post-thumbnails/multi-post-thumbnails.php' ) );
 
 	}
 
@@ -194,11 +229,14 @@ class TestMultiPostThumbnails extends WP_UnitTestCase {
 	 */
 	function test_get_meta_key() {
 
+		// create an MPT instance, manually construct what the meta key should be for that instance
 		$mpt = new MultiPostThumbnails( array( 'label' => 'foo', 'id' => 'bar', 'post_type' => 'post' ) );
 
-		$actual = $mpt->get_meta_key();
 
 		$expected = 'post_bar_thumbnail_id';
+
+		// get the meta key
+		$actual = $mpt->get_meta_key();
 
 		$this->assertEquals( $expected, $actual );
 
@@ -228,6 +266,8 @@ class TestMultiPostThumbnails extends WP_UnitTestCase {
 		$meta_key = 'fozbar';
 		$post = $this->factory->post->create_and_get();
 		$GLOBALS['post'] = $post;
+
+		//manually set the value
 		update_post_meta( $post->ID, $meta_key, $thumbnail_id );
 
 		$mpt = $this->getMockBuilder( 'MultiPostThumbnails' )
@@ -248,197 +288,134 @@ class TestMultiPostThumbnails extends WP_UnitTestCase {
 	}
 
 	/**
+	 * Feed the post_id in to the $_GET superglobal
+	 *
 	 * @covers MultiPostThumbnails::add_attachment_field
 	 */
-	function test_add_attachment_field_no_post_in_superglobal() {
+	function test_add_attachment_field_post_set_in_get() {
+
+		$post  = $this->factory->post->create_and_get();
+		$post_id = $post->ID;
+		$post_type = $post->post_type;
+
+		$_GET['post_id'] = $post_id;
+		$id = 'foo';
+
+		$mpt = new MultiPostThumbnails( array(
+			'label'     => 'Bar',
+			'id'        => $id,
+			'post_type' => $post_type
+		) );
+
+		$field = $mpt->add_attachment_field( array(), $post );
+		$this->arrayHasKey( sprintf( '%s-%s-thumbnail', $post_type, $id ), $field );
+
+	}
+
+	/**
+	 * Feed an array into $_POST to test async-upload
+	 *
+	 * @covers MultiPostThumbnails::add_attachment_field
+	 */
+	function test_add_attachment_field_post_superglobal_set() {
+
+		$post_parent  = $this->factory->post->create_and_get();
+		$post  = $this->factory->post->create_and_get( array('post_parent' => $post_parent->ID ) );
+		$post_type = $post->post_type;
+		$_POST = array(1,2,3);
+		$id = 'foo';
+
+		$mpt = new MultiPostThumbnails( array(
+			'label'     => 'Bar',
+			'id'        => $id,
+			'post_type' => $post_type
+		) );
+
+		$field = $mpt->add_attachment_field( array(), $post );
+		$this->arrayHasKey( sprintf( '%s-%s-thumbnail', $post_type, $id ), $field );
+
+	}
+
+	/**
+	 * @covers MultiPostThumbnails::add_attachment_field
+	 */
+	function test_add_attachment_field_post_type_mismatch() {
+
+		$id = 'foo';
+		$post  = $this->factory->post->create_and_get();
+		$post_id = $post->ID;
+		$_GET['post_id'] = $post_id;
+		$mpt = new MultiPostThumbnails( array(
+			'label'     => 'Bar',
+			'id'        => $id,
+			'post_type' => 'notpost'
+		) );
+
+		$field = $mpt->add_attachment_field( array(), $post );
+		$this->assertEquals( array(), $field );
+
+	}
+
+	/**
+	 * @covers MultiPostThumbnails::add_attachment_field
+	 */
+	function test_add_attachment_field_no_post_parent() {
+
+		$post  = $this->factory->post->create_and_get();
+		$post_type = $post->post_type;
+		$_POST = array(1,2,3);
+		$id = 'foo';
+
+		$mpt = new MultiPostThumbnails( array(
+			'label'     => 'Bar',
+			'id'        => $id,
+			'post_type' => $post_type
+		) );
+
+		$field = $mpt->add_attachment_field( array(), $post );
+		$this->assertEquals( array(), $field );
+
+	}
+
+
+	/**
+	 * Arguments for enqueue_admin_scripts() test:
+	 * - string $wp_version - Version of WordPress
+	 * - array $scripts_expected - scripts that are expected to be enqueued
+	 * - array $scripts_not_expected - scripts NOT expected to be enqueued
+	 */
+	function provider_test_enqueue_admin_scripts(){
+
+		return array(
+			/* WP version 3.4 and expected scripts */
+			array( '3.4', 'post-new.php', array( 'thickbox', 'mpt-featured-image' ), array( 'mpt-featured-image-modal', 'media-editor' )  ),
+			/* WP version 4.0 and expected scripts */
+			array( '4.0', 'post-new.php', array( 'mpt-featured-image-modal', 'media-editor', 'mpt-featured-image' ),  array( 'thickbox' )  ),
+		);
+
+	}
+
+
+	/**
+	 * @dataProvider provider_test_enqueue_admin_scripts
+	 * @covers MultiPostThumbnails::enqueue_admin_scripts
+	 */
+	function test_enqueue_admin_scripts( $version, $hook, $scripts_expected, $scripts_not_expected ) {
+
+		$GLOBALS['wp_version'] = $version;
 
 		$mpt = new MultiPostThumbnails();
-		$actual = $mpt->add_attachment_field('foo', 'bar');
-		$this->assertEquals( 'foo', $actual );
+		$mpt->enqueue_admin_scripts( $hook );
+		foreach( $scripts_expected as $script ) {
 
-	}
+			$this->assertTrue( wp_script_is( $script, 'enqueued' ) );
 
+		}
+		foreach( $scripts_not_expected as $script ) {
 
+			$this->assertFalse( wp_script_is( $script, 'enqueued' ) );
 
-
-	/**
-	 * @covers MultiPostThumbnails::add_attachment_field
-	 */
-	function test_add_attachment_field_get_calling_post_id_null() {
-
-		$post            = $this->factory->post->create_and_get();
-		$_GET['post_id'] = $post->ID;
-
-		$mpt = $this->getMockBuilder( 'MultiPostThumbnails' )
-			->disableOriginalConstructor()
-			->setMethods( array( 'wp_parse_args', 'wp_create_nonce', 'get_post' ) )
-			->getMock();
-
-		$mpt->expects( $this->never() )
-			->method( 'wp_parse_args' );
-
-		$mpt->expects( $this->never() )
-			->method( 'wp_create_nonce' );
-
-		$mpt->expects( $this->once() )
-			->method( 'get_post' )
-			->will( $this->returnValue( null ) );
-
-		$actual   = $mpt->add_attachment_field( 'foo', 'bar' );
-		$expected = 'foo';
-
-		$this->assertEquals( $expected, $actual );
-
-	}
-
-	/**
-	 * @covers MultiPostThumbnails::add_attachment_field
-	 */
-	function test_add_attachment_field_get_unsupported_post_type() {
-
-		$_GET['post_id'] = 123;
-
-		$mpt = $this->getMockBuilder( 'MultiPostThumbnails' )
-			->disableOriginalConstructor()
-			->setMethods( array( 'wp_parse_args', 'wp_create_nonce', 'get_post' ) )
-			->getMock();
-
-		$mpt->expects( $this->never() )
-			->method( 'wp_parse_args' );
-
-		$mpt->expects( $this->never() )
-			->method( 'wp_create_nonce' );
-
-		$mpt->expects( $this->once() )
-			->method( 'get_post' )
-			->will( $this->returnValue( (object) array( 'post_type' => 'not a known post type' ) ) );
-
-		$actual   = $mpt->add_attachment_field( 'foo', 'bar' );
-		$expected = 'foo';
-
-		$this->assertEquals( $expected, $actual );
-
-
-	}
-
-	/**
-	 * @covers MultiPostThumbnails::add_attachment_field
-	 */
-	function test_add_attachment_field_get_unequal_context() {
-
-		$post            = $this->factory->post->create_and_get();
-		$post_id         = $post->ID;
-		$_GET['post_id'] = $post_id;
-		$id              = 123;
-		$post_type       = 'post';
-
-		$mpt = new MultiPostThumbnails( array( 'id' => $id, 'label' => 'thelabel', 'post_type' => $post_type ) );
-
-		$add_attachment_field = $mpt->add_attachment_field( array(), $post );
-
-		$this->assertArrayHasKey( $post_type . '-' . $id . '-thumbnail', $add_attachment_field );
-
-
-	}
-
-	/**
-	 * @covers MultiPostThumbnails::add_attachment_field
-	 */
-	function test_add_attachment_field_get() {
-
-		$post            = $this->factory->post->create_and_get();
-		$post_id         = $post->ID;
-		$_GET['post_id'] = $post_id;
-		$id              = 123;
-		$post_type       = 'post';
-
-		$mpt = new MultiPostThumbnails( array( 'id' => $id, 'label' => 'thelabel', 'post_type' => $post_type ) );
-
-		$add_attachment_field = $mpt->add_attachment_field( array(), $post );
-
-		$this->assertArrayHasKey( $post_type . '-' . $id . '-thumbnail', $add_attachment_field );
-
-
-	}
-
-	/**
-	 * @covers MultiPostThumbnails::add_attachment_field
-	 */
-	function test_add_attachment_field_post() {
-
-		$post      = $this->factory->post->create_and_get();
-		$post_id   = $post->ID;
-		$post2     = $this->factory->post->create_and_get( array( 'post_parent' => $post_id ) );
-		$_POST     = array( 1, 2, 3 );
-		$id        = 123;
-		$post_type = 'post';
-
-		$mpt = new MultiPostThumbnails( array( 'id' => $id, 'label' => 'thelabel', 'post_type' => $post_type ) );
-
-		$add_attachment_field = $mpt->add_attachment_field( array(), $post2 );
-
-		$this->assertArrayHasKey( $post_type . '-' . $id . '-thumbnail', $add_attachment_field );
-
-	}
-
-	/**
-	 * @covers MultiPostThumbnails::enqueue_admin_scripts
-	 */
-	function test_enqueue_admin_scripts_wp_version_34() {
-
-		$mpt = $this->getMockBuilder( 'MultiPostThumbnails' )
-			->disableOriginalConstructor()
-			->setMethods( array( 'version_compare' ) )
-			->getMock();
-
-		$mpt->expects( $this->once() )
-			->method( 'version_compare' )
-			->will( $this->returnValue( true ) );
-
-		$mpt->enqueue_admin_scripts( 'post-new.php' );
-
-		$this->assertTrue( wp_script_is( 'thickbox' ) );
-		$this->assertTrue( wp_script_is( 'mpt-featured-image' ) );
-
-	}
-
-	/**
-	 * @covers MultiPostThumbnails::enqueue_admin_scripts
-	 */
-	function test_enqueue_admin_scripts_wp_version_40() {
-
-		$mpt = $this->getMockBuilder( 'MultiPostThumbnails' )
-			->disableOriginalConstructor()
-			->setMethods( array( 'version_compare' ) )
-			->getMock();
-
-		$mpt->expects( $this->once() )
-			->method( 'version_compare' )
-			->will( $this->returnValue( false ) );
-
-		$mpt->enqueue_admin_scripts( 'post-new.php' );
-
-		$this->assertTrue( wp_script_is( 'mpt-featured-image' ) );
-		$this->assertTrue( wp_script_is( 'mpt-featured-image-modal' ) );
-		$this->assertTrue( wp_script_is( 'media-editor' ) );
-
-	}
-
-
-	/**
-	 * @covers MultiPostThumbnails::enqueue_admin_scripts
-	 */
-	function test_enqueue_admin_scripts_not_in_hook_array() {
-
-		$mpt = $this->getMockBuilder( 'MultiPostThumbnails' )
-			->disableOriginalConstructor()
-			->setMethods( array( 'version_compare' ) )
-			->getMock();
-
-		$mpt->expects( $this->never() )
-			->method( 'version_compare' );
-
-		$mpt->enqueue_admin_scripts( 'NOTINARRAY' );
+		}
 
 	}
 
@@ -448,13 +425,12 @@ class TestMultiPostThumbnails extends WP_UnitTestCase {
 	function test_admin_header_scripts() {
 
 		$post            = $this->factory->post->create_and_get();
-		$post->ID        = 10000;
 		$GLOBALS['post'] = $post;
 		$mpt             = new MultiPostThumbnails;
 		ob_start();
 		$mpt->admin_header_scripts();
 		$output = ob_get_clean();
-		$this->assertEquals( '<script>var post_id = 10000;</script>', $output );
+		$this->assertEquals( sprintf( '<script>var post_id = %s;</script>', $post->ID ) , $output );
 
 	}
 
@@ -477,11 +453,18 @@ class TestMultiPostThumbnails extends WP_UnitTestCase {
 
 		global $wpdb;
 
+		// insert an arbitrary attachment
+
 		$wpdb->query( $wpdb->prepare( "INSERT INTO $wpdb->postmeta ( meta_key, meta_value ) values ( '%s', %d )", $mpt->get_meta_key(), $post_id ) );
 
+		// check that the attachment exists
 		$result = $wpdb->get_results( sprintf( "SELECT * FROM  $wpdb->postmeta WHERE meta_key = '%s' AND meta_value = %d", $mpt->get_meta_key(), $post_id ) );
 		$this->assertEquals( 1, count( $result ) );
+
+		//execute MultiPostThumbnails::action_delete_attachment
 		$mpt->action_delete_attachment( $post_id );
+
+		// check that the attachment no longer exists
 		$result = $wpdb->get_results( sprintf( "SELECT * FROM  $wpdb->postmeta WHERE meta_key = '%s' AND meta_value = %d", $mpt->get_meta_key(), $post_id ) );
 		$this->assertEquals( 0, count( $result ) );
 
@@ -490,81 +473,58 @@ class TestMultiPostThumbnails extends WP_UnitTestCase {
 	/**
 	 * @covers MultiPostThumbnails::filter_is_protected_meta
 	 */
-	function test_filter_is_protected_meta_filter_returns_true() {
+	function test_filter_is_protected_meta_meta_key_equals() {
 
 		$mpt = $this->getMockBuilder( 'MultiPostThumbnails' )
 			->disableOriginalConstructor()
-			->setMethods( array( 'apply_filters' ) )
+			->setMethods( array( 'get_meta_key' ) )
 			->getMock();
-
-		$mpt->expects( $this->once() )
-			->method( 'apply_filters' )
-			->with( $this->equalTo( 'mpt_unprotect_meta' ), $this->equalTo( false ) )
-			->will( $this->returnValue( true ) );
-
-		$expected = 'foo';
-		$actual   = $mpt->filter_is_protected_meta( $expected, 'bar' );
-
-		$this->assertEquals( $expected, $actual );
-
-
-	}
-
-	/**
-	 * @covers MultiPostThumbnails::filter_is_protected_meta
-	 */
-	function test_filter_is_protected_meta_filter_meta_key_equals() {
-
-		$meta_key = 'bar';
-
-		$mpt = $this->getMockBuilder( 'MultiPostThumbnails' )
-			->disableOriginalConstructor()
-			->setMethods( array( 'apply_filters', 'get_meta_key' ) )
-			->getMock();
-
-		$mpt->expects( $this->once() )
-			->method( 'apply_filters' )
-			->with( $this->equalTo( 'mpt_unprotect_meta' ), $this->equalTo( false ) )
-			->will( $this->returnValue( false ) );
 
 		$mpt->expects( $this->once() )
 			->method( 'get_meta_key' )
-			->will( $this->returnValue( $meta_key ) );
+			->will( $this->returnValue( 'meta_key' ) );
 
-		$expected = 'foo';
-		$actual   = $mpt->filter_is_protected_meta( $expected, $meta_key );
-
+		$actual = $mpt->filter_is_protected_meta( 'foo', 'meta_key' );
 		$this->assertTrue( $actual );
 
+	}
+
+	/**
+	 * @covers MultiPostThumbnails::filter_is_protected_meta
+	 */
+	function test_filter_is_protected_meta_meta_key_unequal() {
+
+		$mpt = $this->getMockBuilder( 'MultiPostThumbnails' )
+			->disableOriginalConstructor()
+			->setMethods( array( 'get_meta_key' ) )
+			->getMock();
+
+		$mpt->expects( $this->once() )
+			->method( 'get_meta_key' )
+			->will( $this->returnValue( 'NOT_META_KEY' ) );
+
+
+		// pass foo as the first argument, and expect it to be returned by MultiPostThumbnails::filter_is_protected_meta
+		$expected = 'foo';
+
+		$actual = $mpt->filter_is_protected_meta( $expected, 'meta_key' );
+		$this->assertEquals( $actual, $expected );
 
 	}
 
 	/**
 	 * @covers MultiPostThumbnails::filter_is_protected_meta
 	 */
-	function test_filter_is_protected_meta_filter_meta_key_not_equals() {
+	function test_filter_is_protected_meta_filter() {
 
-		$meta_key = 'bar';
+		// add filter to return true
+		add_filter( 'mpt_unprotect_meta', '__return_true' );
+		$mpt = new MultiPostThumbnails();
 
-		$mpt = $this->getMockBuilder( 'MultiPostThumbnails' )
-			->disableOriginalConstructor()
-			->setMethods( array( 'apply_filters', 'get_meta_key' ) )
-			->getMock();
-
-		$mpt->expects( $this->once() )
-			->method( 'apply_filters' )
-			->with( $this->equalTo( 'mpt_unprotect_meta' ), $this->equalTo( false ) )
-			->will( $this->returnValue( false ) );
-
-		$mpt->expects( $this->once() )
-			->method( 'get_meta_key' )
-			->will( $this->returnValue( 'not meta key' ) );
-
+		// pass foo as the first argument, and expect it to be returned by MultiPostThumbnails::filter_is_protected_meta
 		$expected = 'foo';
-		$actual   = $mpt->filter_is_protected_meta( $expected, $meta_key );
-
-		$this->assertEquals( $actual, $expected );
-
+		$actual = $mpt->filter_is_protected_meta( $expected, 'meta_key' );
+		$this->assertEquals( $expected, $actual );
 
 	}
 
@@ -575,9 +535,13 @@ class TestMultiPostThumbnails extends WP_UnitTestCase {
 
 		$post     = $this->factory->post->create_and_get( array( 'post_type' => 'post' ) );
 		$id       = 'bar';
+
+		//build the expected meta key and set a value to test
 		$expected = 'foz';
 
-		update_post_meta( $post->ID, 'post_' . $id . '_thumbnail_id', $expected );
+		// set the meta
+		MultiPostThumbnails::set_meta( $post->ID, $post->post_type, $id, $expected);
+
 
 		$GLOBALS['post'] = $post;
 		$actual          = MultiPostThumbnails::has_post_thumbnail( 'post', $id );
@@ -591,48 +555,9 @@ class TestMultiPostThumbnails extends WP_UnitTestCase {
 	 */
 	function test_has_post_thumbnail_no_post_id() {
 
+		// if no post is set, it should return false
 		$actual = MultiPostThumbnails::has_post_thumbnail( 'post', 'foz', false );
 		$this->assertFalse( $actual );
-
-	}
-
-	/**
-	 * @covers MultiPostThumbnails::get_the_post_thumbnail
-	 */
-	function test_get_the_post_thumbnail_set_meta() {
-
-		$thumbnail_id = 'foobar';
-
-		$post          = $this->factory->post->create_and_get( array( 'post_type' => 'post' ) );
-		$attachment_id = $this->factory->attachment->create_object( 'foo.jpg', $post->ID, array(
-			'post_mime_type' => 'image/jpeg',
-			'post_type'      => 'attachment'
-		) );
-
-		MultiPostThumbnails::set_meta( $post->ID, 'post', $thumbnail_id, $attachment_id );
-
-		$actual = MultiPostThumbnails::get_the_post_thumbnail( 'post', $thumbnail_id, $post->ID, 'post-thumbnail', '', true );
-
-		$image_link = wp_get_attachment_image( $attachment_id, 'post-thumbnail', false, '' );
-		$url        = wp_get_attachment_url( $attachment_id );
-		$expected   = sprintf( '<a href="%s">%s</a>', $url, $image_link );
-
-		$this->assertEquals( $actual, $expected );
-
-
-	}
-
-	/**
-	 * @covers MultiPostThumbnails::get_the_post_thumbnail
-	 */
-	function test_get_the_post_thumbnail_unset_meta() {
-
-		$thumbnail_id = 'foobar';
-
-		$post     = $this->factory->post->create_and_get( array( 'post_type' => 'post' ) );
-		$actual   = MultiPostThumbnails::get_the_post_thumbnail( 'post', $thumbnail_id, $post->ID, 'post-thumbnail', '', true );
-		$expected = null;
-		$this->assertEquals( $actual, $expected );
 
 	}
 
@@ -641,19 +566,186 @@ class TestMultiPostThumbnails extends WP_UnitTestCase {
 	 */
 	function test_the_post_thumbnail() {
 
-		$thumbnail_id = 'foobar';
+		// test that MultiPostThumbnails::the_post_thumbnail echos the post thumbnail
 
-		$post = $this->factory->post->create_and_get( array( 'post_type' => 'post' ) );
+		$filename = 'foo.jpg';
+		$upload_array = wp_upload_dir();
+		$upload_base_url = $upload_array['baseurl'];
+
+		$post     = $this->factory->post->create_and_get( array( 'post_type' => 'post' ) );
+		$attachment_id = $this->factory->attachment->create_object( $filename, $post->ID, array(
+			'post_mime_type' => 'image/jpeg',
+			'post_type'      => 'attachment'
+		) );
 
 
-		$expected = MultiPostThumbnails::get_the_post_thumbnail( 'post', $thumbnail_id, $post->ID, 'post-thumbnail', '', true );
+		$post_type = $post->post_type;
+		$id = 'foobar';
+
+		MultiPostThumbnails::set_meta( $post->ID, $post_type, $id, $attachment_id);
+
+		$mpt = $this->getMockBuilder( 'MultiPostThumbnails' )
+			->disableOriginalConstructor()
+			->getMock();
+
+		$mpt->register(array('post_type' => 'post', 'id' => $id), false );
 
 		ob_start();
-		MultiPostThumbnails::the_post_thumbnail( 'post', $thumbnail_id, $post->ID, $post->ID, 'post-thumbnail', '', true );
-		$actual = ob_get_clean();
+		MultiPostThumbnails::the_post_thumbnail( $post_type, $id, $post->ID);
+		$output = ob_get_clean();
 
-		$this->assertEquals( $actual, $expected );
+		$document                     = new DOMDocument;
+		$document->preserveWhiteSpace = false;
+		$document->loadHTML( $output );
+		$xpath      = new DOMXPath ( $document );
+		$anchor_tag = $xpath->query( "//img[@src='" . $upload_base_url . '/' . $filename . "']" );
+		$this->assertEquals( 1, $anchor_tag->length );
 
+	}
+
+	/**
+	 * @covers MultiPostThumbnails::get_the_post_thumbnail
+	 */
+	function test_get_the_post_thumbnail() {
+
+
+		// test that MultiPostThumbnails::get_the_post_thumbnail returns the post thumbnail
+
+		$filename = 'foo.jpg';
+		$upload_directory_array = wp_upload_dir();
+		$upload_directory = $upload_directory_array['baseurl'];
+
+		$post     = $this->factory->post->create_and_get( array( 'post_type' => 'post' ) );
+		$attachment_id = $this->factory->attachment->create_object( $filename, $post->ID, array(
+			'post_mime_type' => 'image/jpeg',
+			'post_type'      => 'attachment'
+		) );
+
+
+		$post_type = $post->post_type;
+		$id = 'foobar';
+
+		MultiPostThumbnails::set_meta( $post->ID, $post_type, $id, $attachment_id);
+
+		$mpt = $this->getMockBuilder( 'MultiPostThumbnails' )
+			->disableOriginalConstructor()
+			->getMock();
+
+		$mpt->register(array('post_type' => 'post', 'id' => $id), false );
+
+		$output = MultiPostThumbnails::get_the_post_thumbnail( $post_type, $id, $post->ID);
+
+		$document                     = new DOMDocument;
+		$document->preserveWhiteSpace = false;
+		$document->loadHTML( $output );
+		$xpath      = new DOMXPath ( $document );
+		$anchor_tag = $xpath->query( "//img[@src='" . $upload_directory . '/' . $filename . "']" );
+		$this->assertEquals( 1, $anchor_tag->length );
+
+	}
+
+	/**
+	 * @covers MultiPostThumbnails::get_post_thumbnail
+	 */
+	function test_get_post_thumbnail(){
+
+		// test that MultiPostThumbnails::get_post_thumbnail returns the post thumbnail
+
+		$filename = 'foo.jpg';
+		$upload_directory_array = wp_upload_dir();
+		$upload_directory = $upload_directory_array['baseurl'];
+
+		$post     = $this->factory->post->create_and_get( array( 'post_type' => 'post' ) );
+		$attachment_id = $this->factory->attachment->create_object( $filename, $post->ID, array(
+			'post_mime_type' => 'image/jpeg',
+			'post_type'      => 'attachment'
+		) );
+		$id = 'foo';
+
+		$mpt = new MultiPostThumbnails( array(
+			'label'     => 'Foo',
+			'id'        => $id,
+			'post_type' => 'post'
+		) );
+
+		$post_type = $post->post_type;
+
+
+		MultiPostThumbnails::set_meta( $post->ID, $post_type, $id, $attachment_id);
+
+		$actual = $mpt->get_post_thumbnail( $post->ID, 'post-thumbnail', '', false );
+		$document                     = new DOMDocument;
+		$document->preserveWhiteSpace = false;
+		$document->loadHTML( $actual );
+		$xpath      = new DOMXPath ( $document );
+		$anchor_tag = $xpath->query( "//img[@src='" . $upload_directory . '/' . $filename . "']" );
+		$this->assertEquals( 1, $anchor_tag->length );
+
+
+	}
+
+	/**
+	 * @covers MultiPostThumbnails::get_post_thumbnail
+	 */
+	function test_get_post_thumbnail_echo_link_to_original(){
+
+		// test that MultiPostThumbnails::get_post_thumbnail echos the post thumbnail
+
+		$filename = 'foo.jpg';
+		$upload_directory_array = wp_upload_dir();
+		$upload_directory = $upload_directory_array['baseurl'];
+
+		$post     = $this->factory->post->create_and_get( array( 'post_type' => 'post' ) );
+		$attachment_id = $this->factory->attachment->create_object( $filename, $post->ID, array(
+			'post_mime_type' => 'image/jpeg',
+			'post_type'      => 'attachment'
+		) );
+		$id = 'foo';
+
+		$mpt = new MultiPostThumbnails( array(
+			'label'     => 'Foo',
+			'id'        => $id,
+			'post_type' => 'post'
+		) );
+
+		$post_type = $post->post_type;
+
+
+		MultiPostThumbnails::set_meta( $post->ID, $post_type, $id, $attachment_id);
+
+		ob_start();
+		$mpt->get_post_thumbnail( $post->ID, 'post-thumbnail', '', true, true );
+		$output = ob_get_clean();
+		$document                     = new DOMDocument;
+		$document->preserveWhiteSpace = false;
+		$document->loadHTML( $output );
+		$xpath      = new DOMXPath ( $document );
+		$anchor_tag = $xpath->query( "//a[@href='" . $upload_directory . '/' . $filename . "']" );
+		$this->assertEquals( 1, $anchor_tag->length );
+
+
+	}
+
+	/**
+	 * @covers MultiPostThumbnails::get_post_thumbnail
+	 */
+	function test_get_post_thumbnail_no_post_thumbnail(){
+
+		// test that MultiPostThumbnails::get_post_thumbnail returns an empty string when no post thumbnail exists
+
+		$post     = $this->factory->post->create_and_get( array( 'post_type' => 'post' ) );
+		$id = 'foo';
+
+		$mpt = new MultiPostThumbnails( array(
+			'label'     => 'Foo',
+			'id'        => $id,
+			'post_type' => 'post'
+		) );
+
+		ob_start();
+		$mpt->get_post_thumbnail( $post->ID, 'post-thumbnail', '', true, true );
+		$output = ob_get_clean();
+		$this->assertEquals('', $output);
 
 	}
 
@@ -661,329 +753,337 @@ class TestMultiPostThumbnails extends WP_UnitTestCase {
 	 * @covers MultiPostThumbnails::get_post_thumbnail_id
 	 */
 
-	public function test_get_post_thumbnail_id(){
+	function test_get_post_thumbnail_id(){
 
-		$post_type = 'page';
-		$thumbnail_id = 'foo';
-		$thumbnail_post_id = 'bar';
-		$post_id = $this->factory->post->create( array( 'post_type' => $post_type ) );
-		MultiPostThumbnails::set_meta( $post_id, $post_type, $thumbnail_id, $thumbnail_post_id);
+		// test that the proper URL is returned when calling MultiPostThumbnails::get_post_thumbnail_url
 
-		$actual = MultiPostThumbnails::get_post_thumbnail_id( $post_type, $thumbnail_id, $post_id );
-
-		$this->assertEquals( $thumbnail_post_id, $actual );
-
-	}
-
-	/**
-	 * @covers MultiPostThumbnails::get_post_thumbnail_url
-	 */
-	public function test_get_post_thumbnail_url() {
-
-		$post            = $this->factory->post->create_and_get();
-		$GLOBALS['post'] = $post;
-		$thumbnail_id    = 'foobar';
-		$file_name       = 'foo.jpg';
-
-		$attachment_id = $this->factory->attachment->create_object( $file_name, $post->ID, array(
+		$filename = 'foo.jpg';
+		$post     = $this->factory->post->create_and_get( array( 'post_type' => 'post' ) );
+		$attachment_id = $this->factory->attachment->create_object( $filename, $post->ID, array(
 			'post_mime_type' => 'image/jpeg',
 			'post_type'      => 'attachment'
 		) );
 
-		MultiPostThumbnails::set_meta( $post->ID, 'post', $thumbnail_id, $attachment_id );
 
-		$upload_dir_raw = wp_upload_dir();
-		$upload_url     = str_replace( $upload_dir_raw['subdir'], '', $upload_dir_raw['url'] ); //strip out the month/date from URL
+		$post_type = $post->post_type;
+		$id = 'foobar';
 
-		$expected = $upload_url . '/' . $file_name;
-
-
-		$actual = MultiPostThumbnails::get_post_thumbnail_url( 'post', $thumbnail_id );
-
-		$this->assertEquals( $actual, $expected );
-
+		MultiPostThumbnails::set_meta( $post->ID, $post_type, $id, $attachment_id);
+		$thumbnail_id = MultiPostThumbnails::get_post_thumbnail_id( $post_type, $id, $post->ID );
+		$this->assertEquals( $attachment_id, $thumbnail_id );
 
 	}
 
 	/**
 	 * @covers MultiPostThumbnails::get_post_thumbnail_url
 	 */
-	public function test_get_post_thumbnail_url_size() {
+	function test_get_post_thumbnail_url(){
 
-		$post            = $this->factory->post->create_and_get();
+		// test that the proper URL is returned when calling MultiPostThumbnails::get_post_thumbnail_url
+
+		$filename = 'foo.jpg';
+		$upload_array = wp_upload_dir();
+		$upload_base_url = $upload_array['baseurl'];
+
+		$post     = $this->factory->post->create_and_get( array( 'post_type' => 'post' ) );
 		$GLOBALS['post'] = $post;
-		$thumbnail_id    = 'foobar';
-		$file_name       = 'foo.jpg';
-
-		$post          = $this->factory->post->create_and_get( array( 'post_type' => 'post' ) );
-		$attachment_id = $this->factory->attachment->create_object( $file_name, $post->ID, array(
+		$attachment_id = $this->factory->attachment->create_object( $filename, $post->ID, array(
 			'post_mime_type' => 'image/jpeg',
 			'post_type'      => 'attachment'
 		) );
 
-		MultiPostThumbnails::set_meta( $post->ID, 'post', $thumbnail_id, $attachment_id );
 
-		$upload_dir_raw = wp_upload_dir();
-		$upload_url     = str_replace( $upload_dir_raw['subdir'], '', $upload_dir_raw['url'] ); //strip out the month/date from URL
+		$post_type = $post->post_type;
+		$id = 'foobar';
 
-		$expected = $upload_url . '/' . $file_name;
+		$expected = $upload_base_url . '/' . $filename;
 
-		$actual = MultiPostThumbnails::get_post_thumbnail_url( 'post', $thumbnail_id, $post->ID, 'size' );
+		MultiPostThumbnails::set_meta( $post->ID, $post_type, $id, $attachment_id);
+		$actual = MultiPostThumbnails::get_post_thumbnail_url( $post_type, $id );
 
-		$this->assertEquals( $actual, $expected );
-
+		$this->assertEquals( $expected, $actual );
 
 	}
+
 
 	/**
 	 * @covers MultiPostThumbnails::get_post_thumbnail_url
 	 */
-	public function test_get_post_thumbnail_url_size_no_attachment() {
+	function test_get_post_thumbnail_url_with_size(){
 
-		$post            = $this->factory->post->create_and_get();
+		// test that the proper URL is returned when calling MultiPostThumbnails::get_post_thumbnail_url
+
+		$filename = 'foo.jpg';
+		$upload_array = wp_upload_dir();
+		$upload_base_url = $upload_array['baseurl'];
+
+		$post     = $this->factory->post->create_and_get( array( 'post_type' => 'post' ) );
 		$GLOBALS['post'] = $post;
-		$thumbnail_id    = 'foobar';
+		$attachment_id = $this->factory->attachment->create_object( $filename, $post->ID, array(
+			'post_mime_type' => 'image/jpeg',
+			'post_type'      => 'attachment'
+		) );
 
-		$post          = $this->factory->post->create_and_get( array( 'post_type' => 'post' ) );
-		$attachment_id = null;
 
-		MultiPostThumbnails::set_meta( $post->ID, 'post', $thumbnail_id, $attachment_id );
+		$post_type = $post->post_type;
+		$id = 'foobar';
 
-		$upload_dir_raw = wp_upload_dir();
-		$upload_url     = str_replace( $upload_dir_raw['subdir'], '', $upload_dir_raw['url'] ); //strip out the month/date from URL
+		$expected = $upload_base_url . '/' . $filename;
 
+		MultiPostThumbnails::set_meta( $post->ID, $post_type, $id, $attachment_id);
+		$actual = MultiPostThumbnails::get_post_thumbnail_url( $post_type, $id, 0, 'post-thumbnail' );
+
+		$this->assertEquals( $expected, $actual );
+
+	}
+
+
+	/**
+	 * @covers MultiPostThumbnails::get_post_thumbnail_url
+	 */
+	function test_get_post_thumbnail_url_with_size_set_post_set_to_null(){
+
+		$post     = $this->factory->post->create_and_get( array( 'post_type' => 'post' ) );
+		$GLOBALS['post'] = null;
+		$attachment_id = $this->factory->attachment->create_object( 'foo.jpg', $post->ID, array(
+			'post_mime_type' => 'image/jpeg',
+			'post_type'      => 'attachment'
+		) );
+
+		$post_type = $post->post_type;
+		$id = 'foobar';
 		$expected = '';
 
-		$actual = MultiPostThumbnails::get_post_thumbnail_url( 'post', $thumbnail_id, $post->ID, 'size' );
-		$this->assertEquals( $actual, $expected );
+		MultiPostThumbnails::set_meta( $post->ID, $post_type, $id, $attachment_id);
+		$actual = MultiPostThumbnails::get_post_thumbnail_url( $post_type, $id, 0, 'post-thumbnail' );
+
+		$this->assertEquals( $expected, $actual );
 
 	}
+
 
 	/**
 	 * @covers MultiPostThumbnails::set_thumbnail
 	 */
-	public function test_set_thumbnail_current_user_cannot() {
+	function test_set_thumbnail_user_cannot(){
 
-		$post_id          = $this->factory->post->create();
-		$_POST['post_id'] = $post_id;
+		// test that the post meta does not get changed
 
 		$user_id = $this->factory->user->create( array( 'role' => 'subscriber' ) );
 		wp_set_current_user( $user_id );
+		$value_to_set_meta_before_set_thumbnail = 'barfoo';
+		$id = 'foobar';
+		$post = $this->factory->post->create_and_get();
+		$_POST['post_id'] = $post->ID;
 
-		$mpt = $this->getMockBuilder( 'MultiPostThumbnails' )
-			->disableOriginalConstructor()
-			->setMethods( array( 'mpt_die', 'check_ajax_referer', 'set_meta', 'post_thumbnail_html', 'get_meta_key' ) )
-			->getMock();
+		$mpt = new MultiPostThumbnails();
+		$mpt->register( compact('post_type', 'id' ), false );
 
-		$mpt->expects( $this->once() )
-			->method( 'mpt_die' )
-			->with( $this->equalTo( '-1' ) );
-
-		$mpt->expects( $this->never() )
-			->method( 'check_ajax_referer' );
-
-		$mpt->expects( $this->never() )
-			->method( 'set_meta' );
-
-		$mpt->expects( $this->never() )
-			->method( 'get_meta_key' );
-
-		$mpt->expects( $this->never() )
-			->method( 'post_thumbnail_html' );
-
+		// add a dummy value to test against after running MultiPostThumbnails::set_thumbnail
+		MultiPostThumbnails::set_meta( $post->ID, $post->post_type, $id, $value_to_set_meta_before_set_thumbnail );
 
 		$mpt->set_thumbnail();
 
+		$actual = $mpt->get_thumbnail_id ( $post->ID );
+
+		// make sure that the value does not change by MultiPostThumbnails::set_thumbnail
+		$this->assertEquals( $actual, $value_to_set_meta_before_set_thumbnail );
+
+		$this->assertTrue( $this->exit_called );
+
 	}
+
 
 	/**
 	 * @covers MultiPostThumbnails::set_thumbnail
 	 */
-	public function test_set_thumbnail_current_user_can_thumbnail_negative_1() {
+	function test_set_thumbnail_user_can_thumbnail_id_negative_1(){
 
-		$post_id               = $this->factory->post->create();
-		$_POST['post_id']      = $post_id;
+		// test that the post meta gets deleted
+
+		$user_id = $this->factory->user->create( array( 'role' => 'administrator' ) );
+		$value_to_set_meta_before_set_thumbnail = 'barfoo';
+		$post = $this->factory->post->create_and_get();
+		$post_type = $post->post_type;
+		$id = 'foobar';
+		$_POST['post_id'] = $post->ID;
 		$_POST['thumbnail_id'] = '-1';
-		$id                    = null;
-		$post_type             = null;
 
-		$user_id = $this->factory->user->create( array( 'role' => 'administrator' ) );
 		wp_set_current_user( $user_id );
 
-		$mpt = $this->getMockBuilder( 'MultiPostThumbnails' )
-			->disableOriginalConstructor()
-			->setMethods( array( 'check_ajax_referer', 'set_meta', 'get_meta_key' ) )
-			->getMock();
+		// add a dummy value to test against after running MultiPostThumbnails::set_thumbnail
+		MultiPostThumbnails::set_meta( $post->ID, $post->post_type, $id, $value_to_set_meta_before_set_thumbnail );
 
-
-		$mpt->expects( $this->once() )
-			->method( 'get_meta_key' );
-
-		$mpt->expects( $this->once() )
-			->method( 'check_ajax_referer' );
-
-		$mpt->expects( $this->never() )
-			->method( 'set_meta' );
-
-
-		$result = $mpt->set_thumbnail();
-
-
-		$document                     = new DOMDocument;
-		$document->preserveWhiteSpace = false;
-		$document->loadHTML( $result );
-		$xpath      = new DOMXPath ( $document );
-		$anchor_tag = $xpath->query( "//a[@id='set-" . $post_type . "-" . $id . "-thumbnail']" );
-		$this->assertEquals( 1, $anchor_tag->length );
-
-
-	}
-
-	/**
-	 * @covers MultiPostThumbnails::set_thumbnail
-	 */
-	public function test_set_thumbnail_current_user_can_thumbnail_not_a_post() {
-
-		$post_id               = $this->factory->post->create();
-		$_POST['post_id']      = $post_id;
-		$_POST['thumbnail_id'] = 'notapostid';
-
-		$user_id = $this->factory->user->create( array( 'role' => 'administrator' ) );
-		wp_set_current_user( $user_id );
-
-		$mpt = $this->getMockBuilder( 'MultiPostThumbnails' )
-			->disableOriginalConstructor()
-			->setMethods( array( 'mpt_die', 'check_ajax_referer', 'set_meta', 'post_thumbnail_html', 'get_meta_key' ) )
-			->getMock();
-
-		$mpt->expects( $this->once() )
-			->method( 'mpt_die' )
-			->with( $this->equalTo( '0' ) );
-
-		$mpt->expects( $this->once() )
-			->method( 'check_ajax_referer' );
-
-		$mpt->expects( $this->never() )
-			->method( 'set_meta' );
-
-		$mpt->expects( $this->never() )
-			->method( 'get_meta_key' );
-
-		$mpt->expects( $this->never() )
-			->method( 'post_thumbnail_html' );
-
+		$mpt = new MultiPostThumbnails();
+		$mpt->register( compact('post_type', 'id' ), false );
 
 		$mpt->set_thumbnail();
 
+		$actual = $mpt->get_thumbnail_id ( $post->ID );
+
+		// make sure that the value does not persist as it should be deleted by MultiPostThumbnails::set_thumbnail
+		$this->assertNotEquals( $actual, $value_to_set_meta_before_set_thumbnail );
+
+		$this->assertTrue( $this->exit_called );
 
 	}
 
 	/**
 	 * @covers MultiPostThumbnails::set_thumbnail
 	 */
-	public function test_set_thumbnail_is_a_post() {
+	function test_set_thumbnail_user_can(){
 
-		$post_type     = 'post';
-		$post_id       = $this->factory->post->create( array( 'post_type' => $post_type ) );
-		$attachment_id = $this->factory->attachment->create_object( 'foo.jpg', $post_id, array(
+		// if the user can set the thumbnail, the meta value should change
+
+		$user_id = $this->factory->user->create( array( 'role' => 'administrator' ) );
+		$value_to_set_meta_before_set_thumbnail = 'foobar';
+		$post = $this->factory->post->create_and_get();
+		$filename = 'foo.jpg';
+		$attachment_id = $this->factory->attachment->create_object( $filename, $post->ID, array(
 			'post_mime_type' => 'image/jpeg',
 			'post_type'      => 'attachment'
 		) );
-
-		$id                    = 'barfoo';
-		$_POST['post_id']      = $post_id;
+		$post_type = $post->post_type;
+		$id = 'foobar';
+		$_POST['post_id'] = $post->ID;
 		$_POST['thumbnail_id'] = $attachment_id;
 
+		wp_set_current_user( $user_id );
 
-		$mpt = $this->getMockBuilder( 'MultiPostThumbnails' )
-			->disableOriginalConstructor()
-			->setMethods( array( 'check_ajax_referer', 'get_meta_key' ) )
-			->getMock();
+		// add a dummy value to test against after running MultiPostThumbnails::set_thumbnail
+		MultiPostThumbnails::set_meta( $post->ID, $post->post_type, $id, $value_to_set_meta_before_set_thumbnail );
 
-		$mpt->register( array( 'label' => 'foobar', 'id' => $id ) );
-
-
-		$mpt->expects( $this->once() )
-			->method( 'check_ajax_referer' );
-
-		$mpt->expects( $this->never() )
-			->method( 'get_meta_key' );
-
-
-		$result = $mpt->set_thumbnail();
-
-
-		$document                     = new DOMDocument;
-		$document->preserveWhiteSpace = false;
-		$document->loadHTML( $result );
-		$xpath      = new DOMXPath ( $document );
-		$anchor_tag = $xpath->query( "//a[@id='set-" . $post_type . "-" . $id . "-thumbnail']" );
-		$this->assertEquals( 1, $anchor_tag->length );
-
-	}
-
-	/**
-	 * @covers MultiPostThumbnails::set_thumbnail
-	 */
-	public function test_set_thumbnail_is_a_post_thumbnail_html_returns_null() {
-
-		$post_type     = 'post';
-		$post_id       = $this->factory->post->create( array( 'post_type' => $post_type ) );
-		$attachment_id = $this->factory->attachment->create_object( 'foo.jpg', $post_id, array(
-			'post_mime_type' => 'image/jpeg',
-			'post_type'      => 'attachment'
-		) );
-
-		$id                    = 'barfoo';
-		$_POST['post_id']      = $post_id;
-		$_POST['thumbnail_id'] = $attachment_id;
-
-
-		$mpt = $this->getMockBuilder( 'MultiPostThumbnails' )
-			->disableOriginalConstructor()
-			->setMethods( array( 'mpt_die', 'check_ajax_referer', 'get_meta_key', 'wp_get_attachment_image' ) )
-			->getMock();
-
-		$mpt->register( array( 'label' => 'foobar', 'id' => $id ) );
-
-
-		$mpt->expects( $this->once() )
-			->method( 'check_ajax_referer' );
-
-		$mpt->expects( $this->never() )
-			->method( 'get_meta_key' );
-
-		$mpt->expects( $this->once() )
-			->method( 'wp_get_attachment_image' )
-			->will( $this->returnValue( null ) );
-
-		$mpt->expects( $this->once() )
-			->method( 'mpt_die' )
-			->with( $this->equalTo( '0' ) );
-
-
+		$mpt = new MultiPostThumbnails();
+		$mpt->register( compact('post_type', 'id' ), false );
 		$mpt->set_thumbnail();
+		$actual = $mpt->get_thumbnail_id ( $post->ID );
+
+		// make sure that the value changes as it should be changed by MultiPostThumbnails::set_thumbnail
+		$this->assertNotEquals( $value_to_set_meta_before_set_thumbnail, $actual );
+
+		$this->assertTrue( $this->exit_called );
 
 	}
 
+	/**
+	 * @covers MultiPostThumbnails::set_thumbnail
+	 */
+	function test_set_thumbnail_id_not_post(){
+
+		// if this is not a valid thumbnail_id it should not change the posts meta value for the instance key
+
+		$user_id = $this->factory->user->create( array( 'role' => 'administrator' ) );
+		$value_to_set_meta_before_set_thumbnail = 'foobar';
+		$post = $this->factory->post->create_and_get();
+		$post_type = $post->post_type;
+		$id = 'foobar';
+		$_POST['post_id'] = $post->ID;
+		$_POST['thumbnail_id'] = 'abcdefg';
+
+		wp_set_current_user( $user_id );
+
+		// add a dummy value to test against after running MultiPostThumbnails::set_thumbnail
+		MultiPostThumbnails::set_meta( $post->ID, $post->post_type, $id, $value_to_set_meta_before_set_thumbnail );
+
+		$mpt = new MultiPostThumbnails();
+
+		$mpt->register( compact('post_type', 'id' ), false );
+		$mpt->set_thumbnail();
+		$actual = $mpt->get_thumbnail_id ( $post->ID );
+
+		// make sure that the value does not change by MultiPostThumbnails::set_thumbnail
+		$this->assertEquals( $actual, $value_to_set_meta_before_set_thumbnail );
+
+		$this->assertTrue( $this->exit_called );
+
+
+	}
+
+	/**
+	 * @covers MultiPostThumbnails::set_thumbnail
+	 */
+	function test_set_thumbnail_id_is_not_image_attachment_attachment(){
+
+		// if this is not a valid image it should not change the posts meta value for the instance key
+
+		$user_id = $this->factory->user->create( array( 'role' => 'administrator' ) );
+		$value_to_set_meta_before_set_thumbnail = 'foobar';
+		$post = $this->factory->post->create_and_get();
+		$post_type = $post->post_type;
+		$id = 'foobar';
+
+		// set this as a 'post' post type (not an image)
+
+		$_POST['post_id'] = $post->ID;
+
+		wp_set_current_user( $user_id );
+
+		// add a dummy value to test against after running MultiPostThumbnails::set_thumbnail
+		MultiPostThumbnails::set_meta( $post->ID, $post->post_type, $id, $value_to_set_meta_before_set_thumbnail );
+
+		$mpt = new MultiPostThumbnails();
+		$mpt->register( compact('post_type', 'id' ), false );
+		$mpt->set_thumbnail();
+		$actual = $mpt->get_thumbnail_id ( $post->ID );
+
+		// make sure that the value does not change by MultiPostThumbnails::set_thumbnail
+		$this->assertEquals( $actual, $value_to_set_meta_before_set_thumbnail );
+
+		$this->assertTrue( $this->exit_called );
+
+
+	}
+
+
+	/**
+	 * @covers MultiPostThumbnails::get_thumbnail_id
+	 */
+	function test_get_thumbnail_id(){
+
+		$post            = $this->factory->post->create_and_get();
+		$post_type = $post->post_type;
+		$id = 'foobar';
+		$value = 'fozbar';
+		$mpt = new MultiPostThumbnails();
+		$mpt->register( compact('post_type', 'id' ), false );
+
+		// add a dummy value to test against after running MultiPostThumbnails::set_thumbnail
+		MultiPostThumbnails::set_meta( $post->ID, $post->post_type, $id, $value );
+
+		// validate that value is what is expected
+		$actual = MultiPostThumbnails::get_post_thumbnail_id( $post->post_type, $id, $post->ID );
+		$this->assertEquals( $value, $actual );
+
+	}
 
 	/**
 	 * @covers MultiPostThumbnails::set_meta
 	 */
-	public function test_set_meta() {
+	function test_set_meta(){
 
-		$post_type = 'page';
-		$thumbnail_id = 'foo';
-		$thumbnail_post_id = 'bar';
-		$post_id = $this->factory->post->create( array( 'post_type' => $post_type ) );
-		MultiPostThumbnails::set_meta( $post_id, $post_type, $thumbnail_id, $thumbnail_post_id);
+		$post  = $this->factory->post->create_and_get();
+		$post_id = $post->ID;
+		$post_type = $post->post_type;
+		$expected = $this->factory->attachment->create_object( 'foobar.jpg', $post->ID, array(
+			'post_mime_type' => 'image/jpeg',
+			'post_type'      => 'attachment'
+		) );
 
-		$actual = get_post_meta( $post_id, "{$post_type}_{$thumbnail_id}_thumbnail_id", true );
+		$id = 'foobar';
 
-		$this->assertEquals( $thumbnail_post_id, $actual );
+		// add a dummy value to test against after running MultiPostThumbnails::set_thumbnail
+		MultiPostThumbnails::set_meta($post_id, $post_type, $id, $expected);
+
+		$mpt = new MultiPostThumbnails();
+		$mpt->register( compact('post_type', 'id' ), false );
+
+		//verify that we've set the meta as expected
+
+		$actual = MultiPostThumbnails::get_post_thumbnail_id( $post->post_type, $id, $post->ID );
+
+		$this->assertEquals( $expected, $actual );
 
 	}
-
 
 }
 
