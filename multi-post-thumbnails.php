@@ -184,6 +184,8 @@ if (!class_exists('MultiPostThumbnails')) {
 				wp_enqueue_script( "mpt-featured-image", $this->plugins_url( 'js/multi-post-thumbnails-admin.js', __FILE__ ), array( 'jquery', 'set-post-thumbnail' ) );
 				wp_enqueue_script( "mpt-featured-image-modal", $this->plugins_url( 'js/media-modal.js', __FILE__ ), array( 'jquery', 'media-models' ) );				
 			}
+			
+			wp_enqueue_style( "mpt-admin-css", $this->plugins_url( 'css/multi-post-thumbnails-admin.css', __FILE__ ) );
 		}
 		
 		public function admin_header_scripts() {
@@ -394,10 +396,14 @@ if (!class_exists('MultiPostThumbnails')) {
 			if ($thumbnail_id && get_post($thumbnail_id)) {
 				$old_content_width = $content_width;
 				$content_width = 266;
-				if ( !isset($_wp_additional_image_sizes["{$this->post_type}-{$this->id}-thumbnail"]))
-					$thumbnail_html = wp_get_attachment_image($thumbnail_id, array($content_width, $content_width));
-				else
-					$thumbnail_html = wp_get_attachment_image($thumbnail_id, "{$this->post_type}-{$this->id}-thumbnail");
+				$attr = array( 'class' => 'mpt-thumbnail' );
+				
+				if ( !isset($_wp_additional_image_sizes["{$this->post_type}-{$this->id}-thumbnail"])) {
+						$thumbnail_html = wp_get_attachment_image( $thumbnail_id, array($content_width, $content_width), false, $attr );
+				} else {
+						$thumbnail_html = wp_get_attachment_image( $thumbnail_id, "{$this->post_type}-{$this->id}-thumbnail", false, $attr );
+				}
+				
 				if (!empty($thumbnail_html)) {
 					$content = sprintf($set_thumbnail_link, $thumbnail_html);
 					$format_string = '<p class="hide-if-no-js"><a href="#" id="remove-%1$s-%2$s-thumbnail" onclick="MultiPostThumbnails.removeThumbnail(\'%2$s\', \'%1$s\', \'%4$s\');return false;">%3$s</a></p>';
@@ -405,11 +411,11 @@ if (!class_exists('MultiPostThumbnails')) {
 				}
 				$content_width = $old_content_width;
 			}
-			
+
 			if (version_compare($wp_version, '3.5', '>=')) {
 				$content .= sprintf('<script>%s</script>', $modal_js);
 			}
-			
+
 			return apply_filters( sprintf( '%s_%s_admin_post_thumbnail_html', $this->post_type, $this->id ), $content, $post_ID, $thumbnail_id );
 		}
 
