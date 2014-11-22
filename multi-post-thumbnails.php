@@ -391,7 +391,7 @@ if (!class_exists('MultiPostThumbnails')) {
 			}
 			$format_string = '<p class="hide-if-no-js"><a title="%1$s" href="%2$s" id="set-%3$s-%4$s-thumbnail" class="%5$s" data-thumbnail_id="%7$s" data-uploader_title="%1$s" data-uploader_button_text="%1$s">%%s</a></p>';
 			$set_thumbnail_link = sprintf( $format_string, sprintf( esc_attr__( "Set %s" , 'multiple-post-thumbnails' ), $this->label ), $image_library_url, $this->post_type, $this->id, $url_class, $this->label, $thumbnail_id );
-			$content = sprintf( $set_thumbnail_link, sprintf( esc_html__( "Set %s", 'multiple-post-thumbnails' ), $this->label ) );
+			$content = sprintf( $set_thumbnail_link, sprintf( esc_html__( "Set %s", 'multiple-post-thumbnails' ), strtolower($this->label) ) );
 
 			if ($thumbnail_id && get_post($thumbnail_id)) {
 				$old_content_width = $content_width;
@@ -407,7 +407,7 @@ if (!class_exists('MultiPostThumbnails')) {
 				if (!empty($thumbnail_html)) {
 					$content = sprintf($set_thumbnail_link, $thumbnail_html);
 					$format_string = '<p class="hide-if-no-js"><a href="#" id="remove-%1$s-%2$s-thumbnail" onclick="MultiPostThumbnails.removeThumbnail(\'%2$s\', \'%1$s\', \'%4$s\');return false;">%3$s</a></p>';
-					$content .= sprintf( $format_string, $this->post_type, $this->id, sprintf( esc_html__( "Remove %s", 'multiple-post-thumbnails' ), $this->label ), $ajax_nonce );
+					$content .= sprintf( $format_string, $this->post_type, $this->id, sprintf( esc_html__( "Remove %s", 'multiple-post-thumbnails' ), strtolower($this->label) ), $ajax_nonce );
 				}
 				$content_width = $old_content_width;
 			}
