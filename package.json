@@ -1,7 +1,7 @@
 {
     "name": "multi-post-thumbnails",
     "description": "Multiple Post Thumbnails",
-    "version": "1.6.4",
+    "version": "1.6.5",
     "repository": {
         "type": "git",
         "url": "git@github.com:voceconnect/multi-post-thumbnails.git"
