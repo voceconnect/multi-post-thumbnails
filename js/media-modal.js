@@ -23,20 +23,14 @@ var MediaModal = function (options) {
       },
       library : {
         type : 'image'
-      }
+      },
+      multiple: false
     });
-		
+
     // Set filterable state to uploaded to get select to show (setting this
     // when creating the frame doesn't work)
     frame.on('toolbar:create:select', function(){
       frame.state().set('filterable', 'uploaded');
-    });
-
-    // When an image is selected, run the callback.
-    frame.on('select', function () {
-      // We set multiple to false so only get one image from the uploader
-      var attachment = frame.state().get('selection').first().toJSON();
-      that.settings.cb(attachment);
     });
 
     frame.on('open activate', function() {
@@ -50,7 +44,7 @@ var MediaModal = function (options) {
         selection.add(Attachment.get($caller.data('thumbnail_id')));
       }
     });
-        
+
     frame.open();
   };
 
