@@ -33,15 +33,34 @@ var MediaModal = function (options) {
       frame.state().set('filterable', 'uploaded');
     });
 
-    frame.on('open activate', function() {
+    frame.on( 'open', function() {
       // Get the link/button/etc that called us
-      var $caller = jQuery(that.settings.calling_selector);
+      var $caller = jQuery( that.settings.calling_selector );
 
       // Select the thumbnail if we have one
-      if ($caller.data('thumbnail_id')) {
-        var Attachment = wp.media.model.Attachment;
-        var selection = frame.state().get('selection');
-        selection.add(Attachment.get($caller.data('thumbnail_id')));
+      if ( $caller.data( 'thumbnail_id' ) ) {
+        var Attachment  = wp.media.model.Attachment.get( $caller.data( 'thumbnail_id' ) );
+        Attachment.fetch();
+        var selection = frame.state().get( 'selection' );
+        selection.add( Attachment );
+
+        // Overload the library's comparator to push items that are not in
+        // the mirrored query to the front of the aggregate collection.
+        var library = frame.state().get( 'library' );
+        var comparator = library.comparator;
+        library.comparator = function( a, b ) {
+          var aInQuery = !! this.mirroring.get( a.cid ),
+          bInQuery = !! this.mirroring.get( b.cid );
+
+          if ( ! aInQuery && bInQuery ) {
+            return -1;
+          }  else if ( aInQuery && ! bInQuery ) {
+          return 1;
+          }  else {
+          return comparator.apply( this, arguments );
+          }
+        };
+        library.observe( selection );
       }
     });
 
