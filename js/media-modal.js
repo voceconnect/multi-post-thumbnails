@@ -33,6 +33,13 @@ var MediaModal = function (options) {
       frame.state().set('filterable', 'uploaded');
     });
 
+    // When an image is selected, run the callback.
+    frame.on('select', function () {
+      // We set multiple to false so only get one image from the uploader
+      var attachment = frame.state().get('selection').first().toJSON();
+      that.settings.cb(attachment);
+    });
+
     frame.on( 'open', function() {
       // Get the link/button/etc that called us
       var $caller = jQuery( that.settings.calling_selector );
