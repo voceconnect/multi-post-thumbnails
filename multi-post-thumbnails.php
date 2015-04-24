@@ -3,7 +3,7 @@
 Plugin Name: Multiple Post Thumbnails
 Plugin URI: http://wordpress.org/extend/plugins/multiple-post-thumbnails/
 Description: Adds the ability to add multiple post thumbnails to a post type.
-Version: 1.6.5
+Version: 1.6.6
 Author: Chris Scott
 Author URI: http://voceplatforms.com/
 */
@@ -390,7 +390,7 @@ if (!class_exists('MultiPostThumbnails')) {
 				);
 			}
 			$format_string = '<p class="hide-if-no-js"><a title="%1$s" href="%2$s" id="set-%3$s-%4$s-thumbnail" class="%5$s" data-thumbnail_id="%7$s" data-uploader_title="%1$s" data-uploader_button_text="%1$s">%%s</a></p>';
-			$set_thumbnail_link = sprintf( $format_string, sprintf( esc_attr__( "Set %s" , 'multiple-post-thumbnails' ), $this->label ), $image_library_url, $this->post_type, $this->id, $url_class, $this->label, $thumbnail_id );
+			$set_thumbnail_link = sprintf( $format_string, sprintf( esc_attr__( "Set %s" , 'multiple-post-thumbnails' ), $this->label ), esc_url($image_library_url), $this->post_type, $this->id, $url_class, $this->label, $thumbnail_id );
 			$content = sprintf( $set_thumbnail_link, sprintf( esc_html__( "Set %s", 'multiple-post-thumbnails' ), $this->label ) );
 
 			if ($thumbnail_id && get_post($thumbnail_id)) {
