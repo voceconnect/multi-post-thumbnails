@@ -247,14 +247,15 @@ if (!class_exists('MultiPostThumbnails')) {
 		 * @return string the URL of the plugin file
 		 */
 		private function plugins_url($relative_path, $plugin_path) {
-			$template_dir = get_template_directory();
+			$template_dir = get_stylesheet_directory();
 
 			foreach ( array('template_dir', 'plugin_path') as $var ) {
 				$$var = str_replace('\\' ,'/', $$var); // sanitize for Win32 installs
 				$$var = preg_replace('|/+|', '/', $$var);
 			}
+
 			if(0 === strpos($plugin_path, $template_dir)) {
-				$url = get_template_directory_uri();
+				$url = get_stylesheet_directory_uri();
 				$folder = str_replace($template_dir, '', dirname($plugin_path));
 				if ( '.' != $folder ) {
 					$url .= '/' . ltrim($folder, '/');
@@ -478,6 +479,11 @@ if (!class_exists('MultiPostThumbnails')) {
 
 	}
 
-	if ( is_admin() )
-		load_plugin_textdomain( 'multiple-post-thumbnails', FALSE, basename( dirname( __FILE__ ) ) . '/languages/' );
+	if ( is_admin() ) {
+		$domain = 'multiple-post-thumbnails';
+		$locale = apply_filters('plugin_locale', get_locale(), $domain);
+		$mofile = $domain . '-' . $locale . '.mo';
+
+		load_textdomain( $domain, dirname( __FILE__ ) . '/languages/' . $mofile );
+	}
 }
