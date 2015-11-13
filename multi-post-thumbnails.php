@@ -29,6 +29,14 @@ if (!class_exists('MultiPostThumbnails')) {
 
 	class MultiPostThumbnails {
 
+		/**
+		 * Records if the scripts and styles have been enqueued so that we only
+		 * do so once.
+		 *
+		 * @var boolean
+		 */
+		protected static $statics_enqueued = false;
+
 		public function __construct($args = array()) {
 			$this->register($args);
 		}
@@ -170,6 +178,10 @@ if (!class_exists('MultiPostThumbnails')) {
 		 * @return void
 		 */
 		public function enqueue_admin_scripts( $hook ) {
+			if ( self::$statics_enqueued ) {
+				return;
+			}
+
 			global $wp_version, $post_ID;
 			
 			// only load on select pages
@@ -186,6 +198,8 @@ if (!class_exists('MultiPostThumbnails')) {
 			}
 			
 			wp_enqueue_style( "mpt-admin-css", $this->plugins_url( 'css/multi-post-thumbnails-admin.css', __FILE__ ) );
+
+			self::$statics_enqueued = true;
 		}
 		
 		public function admin_header_scripts() {
