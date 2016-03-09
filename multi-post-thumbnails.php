@@ -450,6 +450,7 @@ if (!class_exists('MultiPostThumbnails')) {
 
 			if ($thumbnail_id == '-1') {
 				delete_post_meta($post_ID, $this->get_meta_key());
+				do_action( "delete_multi_thumbnail_{$this->id}", $post_ID );
 				die($this->post_thumbnail_html(null));
 			}
 
