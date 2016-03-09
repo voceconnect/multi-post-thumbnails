@@ -457,6 +457,7 @@ if (!class_exists('MultiPostThumbnails')) {
 				$thumbnail_html = wp_get_attachment_image($thumbnail_id, 'thumbnail');
 				if (!empty($thumbnail_html)) {
 					$this->set_meta($post_ID, $this->post_type, $this->id, $thumbnail_id);
+					do_action( "set_multi_thumbnail_{$this->id}", $post_ID, $thumbnail_id );
 					die($this->post_thumbnail_html($thumbnail_id));
 				}
 			}
