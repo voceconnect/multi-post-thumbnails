@@ -372,6 +372,32 @@ if (!class_exists('MultiPostThumbnails')) {
 
 			return $url;
 		}
+		
+				/**
+		 *
+		 * @param string $post_type The post type.
+		 * @param string $id The id used to register the thumbnail.
+		 * @return thumbnail title.
+		 */
+		public static function get_post_thumbnail_title($post_type, $id) {
+			$post_id = get_the_ID();
+			$post_thumbnail_id = self::get_post_thumbnail_id($post_type, $id, $post_id);
+			$attachment_meta = get_post($post_thumbnail_id);
+			return $attachment_meta->post_title;
+		}
+		
+		/**
+		 *
+		 * @param string $post_type The post type.
+		 * @param string $id The id used to register the thumbnail.
+		 * @return thumbnail description.
+		 */
+		public static function get_post_thumbnail_description($post_type, $id) {
+			$post_id = get_the_ID();
+			$post_thumbnail_id = self::get_post_thumbnail_id($post_type, $id, $post_id);
+			$attachment_meta = get_post($post_thumbnail_id);
+			return $attachment_meta->post_excerpt;
+		}
 
 		/**
 		 * Output the post thumbnail HTML for the metabox and AJAX callbacks
