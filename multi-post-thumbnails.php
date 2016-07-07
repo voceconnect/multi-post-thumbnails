@@ -373,17 +373,24 @@ if (!class_exists('MultiPostThumbnails')) {
 			return $url;
 		}
 		
-				/**
+		/**
 		 *
 		 * @param string $post_type The post type.
 		 * @param string $id The id used to register the thumbnail.
 		 * @return thumbnail title.
 		 */
-		public static function get_post_thumbnail_title($post_type, $id) {
-			$post_id = get_the_ID();
+		public static function get_post_thumbnail_title($post_type, $id, $post_id) {
+			if (!$post_id) {
+				$post_id = get_the_ID();
+			}
 			$post_thumbnail_id = self::get_post_thumbnail_id($post_type, $id, $post_id);
-			$attachment_meta = get_post($post_thumbnail_id);
-			return $attachment_meta->post_title;
+			if ($post_thumbnail_id) {
+				$attachment_meta = get_post($post_thumbnail_id);
+				$attachment_title = $attachment_meta->post_title;
+			} else {
+				$attachment_title = '';
+			}
+			return $attachment_title;
 		}
 		
 		/**
@@ -392,11 +399,18 @@ if (!class_exists('MultiPostThumbnails')) {
 		 * @param string $id The id used to register the thumbnail.
 		 * @return thumbnail description.
 		 */
-		public static function get_post_thumbnail_description($post_type, $id) {
-			$post_id = get_the_ID();
+		public static function get_post_thumbnail_description($post_type, $id, $post_id) {
+			if (!$post_id) {
+				$post_id = get_the_ID();
+			}
 			$post_thumbnail_id = self::get_post_thumbnail_id($post_type, $id, $post_id);
-			$attachment_meta = get_post($post_thumbnail_id);
-			return $attachment_meta->post_excerpt;
+			if ($post_thumbnail_id) {
+				$attachment_meta = get_post($post_thumbnail_id);
+				$attachment_excerpt = $attachment_meta->post_excerpt;
+			} else {
+				$attachment_excerpt = '';
+			}
+			return $attachment_excerpt;
 		}
 
 		/**
