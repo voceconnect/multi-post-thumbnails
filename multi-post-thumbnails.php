@@ -110,7 +110,7 @@ if (!class_exists('MultiPostThumbnails')) {
 		 * @return string 
 		 */
 		public function get_meta_key() {
-			return "{$this->post_type}_{$this->id}_thumbnail_id";
+			return apply_filters( 'mpt_meta_key', "{$this->post_type}_{$this->id}_thumbnail_id", $this->post_type, $this->id );
 		}
 
 		/**
