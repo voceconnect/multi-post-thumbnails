@@ -442,26 +442,27 @@ if (!class_exists('MultiPostThumbnails')) {
 		public function set_thumbnail() {
 			global $post_ID; // have to do this so get_upload_iframe_src() can grab it
 			$post_ID = intval($_POST['post_id']);
-			if ( !current_user_can('edit_post', $post_ID))
-				die('-1');
+			if ( ! current_user_can( 'edit_post', $post_ID ) ) {
+				wp_send_json_error( new WP_Error( 'mpt-unauthorized', __( 'Not authorized', 'multiple-post-thumbnails' ) ) );
+			}
 			$thumbnail_id = intval($_POST['thumbnail_id']);
 
 			check_ajax_referer("set_post_thumbnail-{$this->post_type}-{$this->id}-{$post_ID}");
 
 			if ($thumbnail_id == '-1') {
 				delete_post_meta($post_ID, $this->get_meta_key());
-				die($this->post_thumbnail_html(null));
+				wp_send_json_success( $this->post_thumbnail_html(null) );
 			}
 
 			if ($thumbnail_id && get_post($thumbnail_id)) {
 				$thumbnail_html = wp_get_attachment_image($thumbnail_id, 'thumbnail');
 				if (!empty($thumbnail_html)) {
 					$this->set_meta($post_ID, $this->post_type, $this->id, $thumbnail_id);
-					die($this->post_thumbnail_html($thumbnail_id));
+					wp_send_json_success( $thumbnail_id );
 				}
 			}
 
-			die('0');
+			wp_send_json_error();
 		}
 		
 		/**
@@ -474,7 +475,7 @@ if (!class_exists('MultiPostThumbnails')) {
 		 * @return bool result of update_post_meta
 		 */
 		public static function set_meta($post_ID, $post_type, $thumbnail_id, $thumbnail_post_id) {
-			return update_post_meta($post_ID, "{$post_type}_{$thumbnail_id}_thumbnail_id", $thumbnail_post_id);
+			return update_post_meta($post_ID, apply_filters( 'mpt_meta_key', "{$post_type}_{$thumbnail_id}_thumbnail_id", $post_type, $thumbnail_id ), $thumbnail_post_id);
 		}
 
 	}
