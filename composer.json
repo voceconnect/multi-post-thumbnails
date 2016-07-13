@@ -1,8 +1,8 @@
 {
-  "name": "voceconnect/multi-post-thumbnails",
+  "name": "britco/multi-post-thumbnails",
   "type": "wordpress-plugin",
   "description": "Adds the ability to add multiple post thumbnails to a post type.",
-  "homepage": "https://github.com/voceconnect/multi-post-thumbnails/",
+  "homepage": "https://github.com/britco/multi-post-thumbnails/",
   "version": "1.6.6",
   "license": "GPLv2",
   "authors": [
