@@ -1,0 +1,22 @@
+{
+  "name": "voceconnect/multi-post-thumbnails",
+  "type": "wordpress-plugin",
+  "description": "Adds the ability to add multiple post thumbnails to a post type.",
+  "homepage": "https://github.com/voceconnect/multi-post-thumbnails/",
+  "version": "1.6.6",
+  "license": "GPLv2",
+  "authors": [
+    {
+      "name": "Chris Scott",
+      "homepage": "http://voceplatforms.com/",
+      "role": "Developer"
+    }
+  ],
+  "require": {
+    "php": ">5.2",
+    "composer/installers": "~1.0.25"
+  },
+  "require-dev": {
+    "php": ">5.2",
+  }
+}
