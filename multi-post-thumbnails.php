@@ -131,7 +131,9 @@ if (!class_exists('MultiPostThumbnails')) {
 			global $post;
 			
 			$thumbnail_id = get_post_meta($post->ID, $this->get_meta_key(), true);
-			echo $this->post_thumbnail_html($thumbnail_id);	
+			echo $this->post_thumbnail_html($thumbnail_id);
+
+			do_action( 'mtp_after_metabox_content', $this->get_meta_key() );
 		}
 
 		/**
