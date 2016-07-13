@@ -110,7 +110,7 @@ if (!class_exists('MultiPostThumbnails')) {
 		 * @return string 
 		 */
 		public function get_meta_key() {
-			return "{$this->post_type}_{$this->id}_thumbnail_id";
+			return apply_filters( 'mpt_meta_key', "{$this->post_type}_{$this->id}_thumbnail_id", $this->post_type, $this->id );
 		}
 
 		/**
@@ -131,7 +131,9 @@ if (!class_exists('MultiPostThumbnails')) {
 			global $post;
 			
 			$thumbnail_id = get_post_meta($post->ID, $this->get_meta_key(), true);
-			echo $this->post_thumbnail_html($thumbnail_id);	
+			echo $this->post_thumbnail_html($thumbnail_id);
+
+			do_action( 'mtp_after_metabox_content', $this->get_meta_key() );
 		}
 
 		/**
@@ -442,8 +444,9 @@ if (!class_exists('MultiPostThumbnails')) {
 		public function set_thumbnail() {
 			global $post_ID; // have to do this so get_upload_iframe_src() can grab it
 			$post_ID = intval($_POST['post_id']);
-			if ( !current_user_can('edit_post', $post_ID))
+			if ( ! current_user_can( 'edit_post', $post_ID ) ) {
 				die('-1');
+			}
 			$thumbnail_id = intval($_POST['thumbnail_id']);
 
 			check_ajax_referer("set_post_thumbnail-{$this->post_type}-{$this->id}-{$post_ID}");
@@ -474,7 +477,7 @@ if (!class_exists('MultiPostThumbnails')) {
 		 * @return bool result of update_post_meta
 		 */
 		public static function set_meta($post_ID, $post_type, $thumbnail_id, $thumbnail_post_id) {
-			return update_post_meta($post_ID, "{$post_type}_{$thumbnail_id}_thumbnail_id", $thumbnail_post_id);
+			return update_post_meta($post_ID, apply_filters( 'mpt_meta_key', "{$post_type}_{$thumbnail_id}_thumbnail_id", $post_type, $thumbnail_id ), $thumbnail_post_id);
 		}
 
 	}
