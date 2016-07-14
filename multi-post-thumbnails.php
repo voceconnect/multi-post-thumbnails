@@ -132,8 +132,6 @@ if (!class_exists('MultiPostThumbnails')) {
 			
 			$thumbnail_id = get_post_meta($post->ID, $this->get_meta_key(), true);
 			echo $this->post_thumbnail_html($thumbnail_id);
-
-			do_action( 'mtp_after_metabox_content', $this->get_meta_key() );
 		}
 
 		/**
@@ -432,6 +430,10 @@ if (!class_exists('MultiPostThumbnails')) {
 			if (version_compare($wp_version, '3.5', '>=')) {
 				$content .= sprintf('<script>%s</script>', $modal_js);
 			}
+
+			ob_start();
+			do_action( 'mtp_after_metabox_content', $this->get_meta_key() );
+			$content .= ob_get_clean();
 
 			return apply_filters( sprintf( '%s_%s_admin_post_thumbnail_html', $this->post_type, $this->id ), $content, $post_ID, $thumbnail_id );
 		}
