@@ -6,6 +6,7 @@ Description: Adds the ability to add multiple post thumbnails to a post type.
 Version: 1.7
 Author: Chris Scott
 Author URI: http://iamzed.com/
+Text Domain: multiple-post-thumbnails
 */
 
 /*  Copyright 2010 Chris Scott (chris@iamzed.com)
@@ -119,7 +120,7 @@ if (!class_exists('MultiPostThumbnails')) {
 		 * @return void
 		 */
 		public function add_metabox() {
-			add_meta_box("{$this->post_type}-{$this->id}", __($this->label, 'multiple-post-thumbnails'), array($this, 'thumbnail_meta_box'), $this->post_type, $this->context, $this->priority);
+			add_meta_box("{$this->post_type}-{$this->id}", $this->label, array($this, 'thumbnail_meta_box'), $this->post_type, $this->context, $this->priority);
 		}
 
 		/**
