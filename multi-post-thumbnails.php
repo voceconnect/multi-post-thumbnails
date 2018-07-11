@@ -479,12 +479,4 @@ if (!class_exists('MultiPostThumbnails')) {
 		}
 
 	}
-
-	if ( is_admin() ) {
-		$domain = 'multiple-post-thumbnails';
-		$locale = apply_filters('plugin_locale', get_locale(), $domain);
-		$mofile = $domain . '-' . $locale . '.mo';
-
-		load_textdomain( $domain, dirname( __FILE__ ) . '/languages/' . $mofile );
-	}
 }
