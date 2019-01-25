@@ -408,7 +408,7 @@ if (!class_exists('MultiPostThumbnails')) {
 			$set_thumbnail_link = sprintf( $format_string, sprintf( esc_attr__( "Set %s" , 'multiple-post-thumbnails' ), $this->label ), esc_url($image_library_url), $this->post_type, $this->id, $url_class, $this->label, $thumbnail_id );
 			$content = sprintf( $set_thumbnail_link, sprintf( esc_html__( "Set %s", 'multiple-post-thumbnails' ), $this->label ) );
 
-			if ($thumbnail_id && get_post($thumbnail_id)) {
+			if ($thumbnail_id) {
 				$old_content_width = $content_width;
 				$content_width = 266;
 				$attr = array( 'class' => 'mpt-thumbnail' );
@@ -453,7 +453,7 @@ if (!class_exists('MultiPostThumbnails')) {
 				die($this->post_thumbnail_html(null));
 			}
 
-			if ($thumbnail_id && get_post($thumbnail_id)) {
+			if ($thumbnail_id) {
 				$thumbnail_html = wp_get_attachment_image($thumbnail_id, 'thumbnail');
 				if (!empty($thumbnail_html)) {
 					$this->set_meta($post_ID, $this->post_type, $this->id, $thumbnail_id);
