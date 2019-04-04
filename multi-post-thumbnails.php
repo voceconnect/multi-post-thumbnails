@@ -6,6 +6,7 @@ Description: Adds the ability to add multiple post thumbnails to a post type.
 Version: 1.7
 Author: Chris Scott
 Author URI: http://iamzed.com/
+Text Domain: multiple-post-thumbnails
 */
 
 /*  Copyright 2010 Chris Scott (chris@iamzed.com)
@@ -119,7 +120,7 @@ if (!class_exists('MultiPostThumbnails')) {
 		 * @return void
 		 */
 		public function add_metabox() {
-			add_meta_box("{$this->post_type}-{$this->id}", __($this->label, 'multiple-post-thumbnails'), array($this, 'thumbnail_meta_box'), $this->post_type, $this->context, $this->priority);
+			add_meta_box("{$this->post_type}-{$this->id}", $this->label, array($this, 'thumbnail_meta_box'), $this->post_type, $this->context, $this->priority);
 		}
 
 		/**
@@ -477,13 +478,5 @@ if (!class_exists('MultiPostThumbnails')) {
 			return update_post_meta($post_ID, "{$post_type}_{$thumbnail_id}_thumbnail_id", $thumbnail_post_id);
 		}
 
-	}
-
-	if ( is_admin() ) {
-		$domain = 'multiple-post-thumbnails';
-		$locale = apply_filters('plugin_locale', get_locale(), $domain);
-		$mofile = $domain . '-' . $locale . '.mo';
-
-		load_textdomain( $domain, dirname( __FILE__ ) . '/languages/' . $mofile );
 	}
 }
